@@ -17,10 +17,18 @@
 
 int main(int argc, char **argv)
 {
-    if(!validargs(argc, argv))
+    if(!validargs(argc, argv)) {
+    	printf("Failed\n");
         USAGE(*argv, EXIT_FAILURE);
+    }
+    /*test validargs result*/
+    if (validargs(argc, argv)) {
+    	printf("Success\n");
+    	printf("The global option is: %x\n", global_options);
+    }
     debug("Options: 0x%X", global_options);
     if(global_options & 0x1) {
+    	printf("Bingo\n");
         USAGE(*argv, EXIT_SUCCESS);
     }
 
