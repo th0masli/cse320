@@ -37,12 +37,21 @@
 int strcmp(char *str0, char *str1); /*string compare*/
 int slen(char *str); /*string length*/
 int str_hex(char *str); /*convert str to hex number*/
+/*num_converter.c*/
+int bin_dec(int bin); /*convert binary number to decimal*/
+/*encode_decode_helper.c*/
+int search_instr(Opcode target_op); /*linear search instrTable; return the index of the instruction, return -1 if not found*/
+/*instruction*/
+//Opcode opcodeTable[];
+//Opcode specialTable[];
+//Instr_info instrTable[];
+
 /*global var for flags*/
-char flag_h[5] = "-h"; /*help menu*/
-char flag_a[5] = "-a"; /*assembly: text-to-binary*/
-char flag_d[5] = "-d"; /*disassembly: binary-to-text*/
-char flag_b[5] = "-b"; /*base address*/
-char flag_e[5] = "-e"; /*endiness*/
+char *flag_h = "-h"; /*help menu*/
+char *flag_a = "-a"; /*assembly: text-to-binary*/
+char *flag_d = "-d"; /*disassembly: binary-to-text*/
+char *flag_b = "-b"; /*base address*/
+char *flag_e = "-e"; /*endiness*/
 
 int check_flag(char *arg, char *flag); /*checking flags*/
 int valid_baddr(char *n); /*checking base address*/
@@ -137,6 +146,7 @@ int validargs(int argc, char **argv)
  * binary code for the instruction.
  */
 int encode(Instruction *ip, unsigned int addr) {
+    
     return 0;
 }
 
@@ -159,6 +169,39 @@ int encode(Instruction *ip, unsigned int addr) {
  * decoded information about the instruction.
  */
 int decode(Instruction *ip, unsigned int addr) {
+    int bi_word = ip->value; /*binary instruction word*/
+    int bi_op_index = bi_word >> 26; /*move right for 26 bits to get the bits 31:26*/
+    //int op_index = bin_dec(bi_op_index); /*no need to convert?*/
+    int op_index = bi_op_index;
+    //printf("The converted decimal result is: %d\n", op_index);
+    /*opcode is special*/
+    if (op_index == 0) {
+        int bi_spec_index = bi_word << 26; /*5:0*/
+        bi_spec_index = bi_spec_index >> 26;
+        int spec_index = bin_dec(bi_spec_index);
+        Opcode spec_op = specialTable[spec_index];
+
+        return 1;
+    }
+    /*opcode is bcond*/
+    else if (op_index == 1) {
+        int bi_bcond_index = bi_word << 11; /*20:16*/
+        bi_bcond_index = bi_bcond_index >> 26;
+        //int bcond_index = bin_dec(bi_bcond_index);
+
+        return 1;
+    }
+    else {
+        printf("The opcode index is: %d\n", op_index);
+        Opcode op = opcodeTable[op_index];
+        /*linear search instrTable*/
+        int instr_index = search_instr(op);
+        //int instr_index = 3; /*for test*/
+        Instr_info instr = instrTable[instr_index];
+        ip->info = &instr;
+        printf("The instruction is: %s\n", instr.format);
+    }
+
     return 0;
 }
 
@@ -173,6 +216,7 @@ int check_flag(char *arg, char *flag) {
 		return 0;
 	return 1;
 }
+
 
 /*checking if it is a hex number & length <8 or multiple of 4096*/
 int valid_baddr(char *n) {

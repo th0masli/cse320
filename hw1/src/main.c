@@ -25,6 +25,10 @@ int main(int argc, char **argv)
     if (validargs(argc, argv)) {
     	printf("Success\n");
     	printf("The global option is: %x\n", global_options);
+    	Instruction ip;
+    	ip.value = 0x0CC72820;
+    	unsigned int addr = 1000;
+    	decode(&ip, addr);
     }
     debug("Options: 0x%X", global_options);
     if(global_options & 0x1) {
