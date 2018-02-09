@@ -12,11 +12,12 @@
 #error "Do not #include <ctype.h>. You will get a ZERO."
 #endif
 
-/*
+/**s
  * You may modify this file and/or move the functions contained here
  * to other source files (except for main.c) as you wish.
+ *
+ *https://gitlab02.cs.stonybrook.edu/cse320/hw1-doc
  */
-
 /**
  * @brief Validates command line arguments passed to the program.
  * @details This function will validate all the arguments passed to the
@@ -41,6 +42,7 @@ int str_hex(char *str); /*convert str to hex number*/
 int bin_dec(int bin); /*convert binary number to decimal*/
 /*encode_decode_helper.c*/
 int search_instr(Opcode target_op); /*linear search instrTable; return the index of the instruction, return -1 if not found*/
+int get_extra(int bi_word, Instr_info instr, unsigned int addr); /*get normal extra code*/
 /*instruction*/
 //Opcode opcodeTable[];
 //Opcode specialTable[];
@@ -125,7 +127,7 @@ int validargs(int argc, char **argv)
     		}
     	}
     }
-    
+
     return 0;
 }
 
@@ -146,7 +148,7 @@ int validargs(int argc, char **argv)
  * binary code for the instruction.
  */
 int encode(Instruction *ip, unsigned int addr) {
-    
+
     return 0;
 }
 
@@ -170,13 +172,23 @@ int encode(Instruction *ip, unsigned int addr) {
  */
 int decode(Instruction *ip, unsigned int addr) {
     int bi_word = ip->value; /*binary instruction word*/
-    int bi_op_index = bi_word >> 26; /*move right for 26 bits to get the bits 31:26*/
+    unsigned int bi_op_index = bi_word >> 26; /*move right for 26 bits to get the bits 31:26*/
     //int op_index = bin_dec(bi_op_index); /*no need to convert?*/
-    int op_index = bi_op_index;
+    unsigned int op_index = bi_op_index;
     //printf("The converted decimal result is: %d\n", op_index);
+    unsigned int rs, rt, rd;
+    rs = bi_word << 6; /*RS 25:21*/
+    rs = rs >> 27;
+    printf("The rs is: %d\n", rs);
+    rt = bi_word << 11; /*RT 20:16*/
+    rt = rt >> 27;
+    printf("The rt is: %d\n", rt);
+    rd = bi_word << 16; /*RD 15:11*/
+    rd = rd >> 27;
+    printf("The rd is: %d\n", rd);
     /*opcode is special*/
     if (op_index == 0) {
-        int bi_spec_index = bi_word << 26; /*5:0*/
+        unsigned int bi_spec_index = bi_word << 26; /*5:0*/
         bi_spec_index = bi_spec_index >> 26;
         int spec_index = bin_dec(bi_spec_index);
         Opcode spec_op = specialTable[spec_index];
@@ -185,7 +197,7 @@ int decode(Instruction *ip, unsigned int addr) {
     }
     /*opcode is bcond*/
     else if (op_index == 1) {
-        int bi_bcond_index = bi_word << 11; /*20:16*/
+        unsigned int bi_bcond_index = bi_word << 11; /*20:16*/
         bi_bcond_index = bi_bcond_index >> 26;
         //int bcond_index = bin_dec(bi_bcond_index);
 
@@ -196,10 +208,26 @@ int decode(Instruction *ip, unsigned int addr) {
         Opcode op = opcodeTable[op_index];
         /*linear search instrTable*/
         int instr_index = search_instr(op);
+        /*instruction not found*/
+        if (instr_index == -1)
+            return 0;
         //int instr_index = 3; /*for test*/
         Instr_info instr = instrTable[instr_index];
         ip->info = &instr;
         printf("The instruction is: %s\n", instr.format);
+        /*put RS, RT and RD in regs*/
+        ip->regs[0] = rs + '0';
+        ip->regs[1] = rt + '0';
+        ip->regs[2] = rd + '0';
+        printf("The register is: %d\n", ip->regs[1]);
+        /*extra value R, I, J; if use then set*/
+        int extra_value = get_extra(bi_word, instr, addr);
+        printf("The extra_value is: %d\n", extra_value);
+        /*will do extra instruction*/
+        if (extra_value != -50000)
+            ip->extra = extra_value;
+        /*args instruction arguments*/
+
     }
 
     return 0;
