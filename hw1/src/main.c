@@ -26,10 +26,13 @@ int main(int argc, char **argv)
     	printf("Success\n");
     	printf("The global option is: %x\n", global_options);
     	Instruction ip;
-    	ip.value = 0x10effc1f;
-        //ip.value = 0x08000400;
-    	unsigned int addr = 0x1000;
-        //unsigned int addr = 0x40000000;
+        unsigned int addr = 0;
+        //ip.value = 0x00c72820; /*e.g 1*/
+        //ip.value = 0x8cc50007; /*e.g 2*/
+    	//ip.value = 0x10effc1f; /*e.g 3*/
+        //addr = 0x1000; /*e.g 3*/
+        ip.value = 0x08000400; /*e.g 4*/
+        addr = 0x40000000; /*e.g 4*/
     	decode(&ip, addr);
     }
     debug("Options: 0x%X", global_options);

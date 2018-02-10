@@ -43,6 +43,8 @@ int bin_dec(int bin); /*convert binary number to decimal*/
 /*encode_decode_helper.c*/
 int search_instr(Opcode target_op); /*linear search instrTable; return the index of the instruction, return -1 if not found*/
 int get_extra(int bi_word, Instr_info instr, unsigned int addr); /*get normal extra code*/
+int check_extra(Source srcs[3]); /*check if extra in source*/
+void fill_ip_decoding(Instruction *ip, Instr_info instr, int bi_word, unsigned int addr); /*fill ip when decoding*/
 /*instruction*/
 //Opcode opcodeTable[];
 //Opcode specialTable[];
@@ -172,62 +174,129 @@ int encode(Instruction *ip, unsigned int addr) {
  */
 int decode(Instruction *ip, unsigned int addr) {
     int bi_word = ip->value; /*binary instruction word*/
-    unsigned int bi_op_index = bi_word >> 26; /*move right for 26 bits to get the bits 31:26*/
-    //int op_index = bin_dec(bi_op_index); /*no need to convert?*/
-    unsigned int op_index = bi_op_index;
-    //printf("The converted decimal result is: %d\n", op_index);
-    unsigned int rs, rt, rd;
-    rs = bi_word << 6; /*RS 25:21*/
-    rs = rs >> 27;
+    int op_index = bi_word >> 26 & 0x3f; /*move right for 26 bits to get the bits 31:26*/
+    int rs, rt, rd;
+    //rs = bi_word << 6 >> 27; /*RS 25:21*/
+    //rs = rs >> 27;
+    rs = bi_word >> 21 & 0x1f;
     printf("The rs is: %d\n", rs);
-    rt = bi_word << 11; /*RT 20:16*/
-    rt = rt >> 27;
+    //rt = bi_word << 11 >> 27; /*RT 20:16*/
+    //rt = rt >> 27;
+    rt = bi_word >> 16 & 0x1f;
     printf("The rt is: %d\n", rt);
-    rd = bi_word << 16; /*RD 15:11*/
-    rd = rd >> 27;
+    //rd = bi_word << 16;// >> 27; /*RD 15:11*/
+    //rd = rd >> 27;
+    rd = bi_word >> 11 & 0x1f;
     printf("The rd is: %d\n", rd);
+    /*put RS, RT and RD in regs*/
+    ip->regs[0] = rs;
+    ip->regs[1] = rt;
+    ip->regs[2] = rd;
+    //printf("The register is: %d\n", ip->regs[1]);
+    int instr_index, extra_value;
+    Instr_info instr;
     /*opcode is special*/
     if (op_index == 0) {
-        unsigned int bi_spec_index = bi_word << 26; /*5:0*/
-        bi_spec_index = bi_spec_index >> 26;
-        int spec_index = bin_dec(bi_spec_index);
+        //unsigned int spec_index = bi_word << 26; /*5:0*/
+        //spec_index = spec_index >> 26;
+        int spec_index = bi_word & 0x3f;
+        printf("The special opcode index is: %d\n", spec_index);
+        //int spec_index = bin_dec(bi_spec_index);
         Opcode spec_op = specialTable[spec_index];
+        instr_index = search_instr(spec_op);
+        if (instr_index == -1)
+            return 0;
+        instr = instrTable[instr_index];
+        fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
+        /*
+        ip->info = &instr;
+        printf("The instruction is: %s\n", instr.format);
+        printf("The ip's info is: %s\n", ip->info->format);
+        if (!check_extra(instr.srcs)) {
+            extra_value = get_extra(bi_word, instr, addr);
+            printf("The extra_value is: %d\n", extra_value);
+            ip->extra = extra_value;
+        }
+        */
 
         return 1;
     }
     /*opcode is bcond*/
     else if (op_index == 1) {
-        unsigned int bi_bcond_index = bi_word << 11; /*20:16*/
-        bi_bcond_index = bi_bcond_index >> 26;
+        //unsigned int bcond_index = bi_word << 11; /*20:16*/
+        //bcond_index = bcond_index >> 26;
+        int bcond_index = bi_word >> 16 & 0x1f;
         //int bcond_index = bin_dec(bi_bcond_index);
+        Opcode bcond_op;
+        if (bcond_index == 0x0)
+            bcond_op =  OP_BLTZ;
+        else if (bcond_index == 0x1)
+            bcond_op = OP_BGEZ;
+        else if (bcond_index == 0x10)
+            bcond_op = OP_BLTZAL;
+        else if (bcond_index == 0x11)
+            bcond_op = OP_BGEZAL;
+        else
+            return 0;
+        instr_index = search_instr(bcond_op);
+        if (instr_index == -1)
+            return 0;
+        instr = instrTable[instr_index];
+        fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
+        /*
+        ip->info = &instr;
+        printf("The instruction is: %s\n", instr.format);
+        printf("The ip's info is: %s\n", ip->info->format);
+        if (!check_extra(instr.srcs)) {
+            extra_value = get_extra(bi_word, instr, addr);
+            printf("The extra_value is: %d\n", extra_value);
+            ip->extra = extra_value;
+        }
+        */
 
         return 1;
     }
+    /*normal opcode*/
     else {
         printf("The opcode index is: %d\n", op_index);
         Opcode op = opcodeTable[op_index];
         /*linear search instrTable*/
-        int instr_index = search_instr(op);
+        instr_index = search_instr(op);
         /*instruction not found*/
         if (instr_index == -1)
             return 0;
         //int instr_index = 3; /*for test*/
-        Instr_info instr = instrTable[instr_index];
+        instr = instrTable[instr_index];
         ip->info = &instr;
-        printf("The instruction is: %s\n", instr.format);
-        /*put RS, RT and RD in regs*/
-        ip->regs[0] = rs + '0';
-        ip->regs[1] = rt + '0';
-        ip->regs[2] = rd + '0';
-        printf("The register is: %d\n", ip->regs[1]);
-        /*extra value R, I, J; if use then set*/
-        int extra_value = get_extra(bi_word, instr, addr);
-        printf("The extra_value is: %d\n", extra_value);
-        /*will do extra instruction*/
-        if (extra_value != -50000)
-            ip->extra = extra_value;
-        /*args instruction arguments*/
+        fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
 
+        return 1;
+        /*
+        printf("The instruction is: %s\n", instr.format);
+        printf("The ip's info is: %s\n", ip->info->format);
+        //extra value R, I, J; if use then set
+        if (!check_extra(instr.srcs)) {
+            extra_value = get_extra(bi_word, instr, addr);
+            printf("The extra_value is: %d\n", extra_value);
+            //will do extra instruction
+            ip->extra = extra_value;
+        }
+        //args instruction arguments
+        for (int i=0; i < 3; i++) {
+            Source src_val = instr.srcs[i];
+            if (src_val == NSRC)
+                ip->args[i] = 0;
+            else if (src_val == RS)
+                ip->args[i] = ip->regs[0];
+            else if (src_val == RT)
+                ip->args[i] = ip->regs[1];
+            else if (src_val == RD)
+                ip->args[i] = ip->regs[2];
+            else if (src_val == EXTRA)
+                ip->args[i] = ip->extra;
+        }
+        printf("The 3rd argument is: %d\n", ip->args[2]);
+        */
     }
 
     return 0;
