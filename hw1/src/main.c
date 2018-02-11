@@ -21,8 +21,8 @@
 int main(int argc, char **argv)
 {
     if(!validargs(argc, argv)) {
-    	printf("Failed\n");
-        USAGE(*argv, EXIT_FAILURE);
+    	//printf("Failed\n");
+      USAGE(*argv, EXIT_FAILURE);
     }
     /*test validargs result*/
     //if (validargs(argc, argv)) {
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
           break;
         int bin_instr = byte[0]*0x1000000 + byte[1]*0x10000 + byte[2]*0x100 + byte[3];
         //bin_instr = convert_endian(bin_instr);
-        printf("The instruction is: %x\n", bin_instr);
+        //printf("The instruction is: %x\n", bin_instr);
         Instruction ip; //initiate a new Instruction structure
         ip.value = bin_instr;
         int decode_res = decode(&ip, base_addr);
