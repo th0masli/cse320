@@ -40,7 +40,7 @@ int tlen(Instr_info *table) {
 
 /*get the extra value according to different instruction type*/
 int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
-	int extra;
+	int extra = 0;
 	unsigned int tmp;
 	Type instr_type = instr.type;
 	if (instr_type == RTYP) {
@@ -101,10 +101,10 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 		printf("The extra before left shift is: %x\n", unsigned_extra);
 		unsigned_extra = unsigned_extra << 2;
 		printf("The j type 25:0 is: %x\n", unsigned_extra);
-		unsigned int modified_addr = (addr | 4) & 0xf0000000; /*clearing out 28 lsb*/
+		unsigned int modified_addr = (addr + 4) & 0xf0000000; /*clearing out 28 lsb*/
 		printf("The base address is: %x\n", addr);
 		printf("The modified_addr is: %x\n", modified_addr);
-		unsigned_extra = unsigned_extra | modified_addr;
+		unsigned_extra = unsigned_extra + modified_addr;
 		printf("The unsigned_extra of type J in hex is: %x\n", unsigned_extra);
 		return unsigned_extra;
 	}

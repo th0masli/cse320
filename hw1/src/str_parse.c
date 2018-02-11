@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 /*compare 2 strings*/
-int strcmp(char *str0, char *str1) {
+int str_cmp(char *str0, char *str1) {
 	while (*str0 && *str0==*str1) /*compare the first char of the strings*/
 	{
 		str0++; /*increase address*/

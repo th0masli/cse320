@@ -35,7 +35,7 @@
  * the selected options.
  */
 
-int strcmp(char *str0, char *str1); /*string compare*/
+int str_cmp(char *str0, char *str1); /*string compare*/
 int slen(char *str); /*string length*/
 int str_hex(char *str); /*convert str to hex number*/
 /*num_converter.c*/
@@ -45,10 +45,12 @@ int search_instr(Opcode target_op); /*linear search instrTable; return the index
 int get_extra(int bi_word, Instr_info instr, unsigned int addr); /*get normal extra code*/
 int check_extra(Source srcs[3]); /*check if extra in source*/
 void fill_ip_decoding(Instruction *ip, Instr_info instr, int bi_word, unsigned int addr); /*fill ip when decoding*/
-/*instruction*/
-//Opcode opcodeTable[];
-//Opcode specialTable[];
-//Instr_info instrTable[];
+/*encode helper*/
+int search_op(Opcode op, Opcode table[]); //search opcode and special table return the index of opcode
+int check_bcond(Opcode op); /*check if the opcode is a bcond*/
+int reverse_extra(int extra, Instr_info instr, unsigned int addr); /*reverse calculate extra*/
+/*calculate the original rs rt rd and extra value for opcode other than bcond*/
+void args_val(Instruction instr, int *rs, int *rt, int *rd, int *origin_extra, unsigned int addr);
 
 /*global var for flags*/
 char *flag_h = "-h"; /*help menu*/
@@ -150,6 +152,107 @@ int validargs(int argc, char **argv)
  * binary code for the instruction.
  */
 int encode(Instruction *ip, unsigned int addr) {
+		int instr_value; //decode to get the instruction value and assign it to ip->value
+		Instruction instr = *ip; //make a copy of the instruction
+		Instr_info instr_detail = *(ip->info); //make a copy of the instruction info
+		Opcode op = instr_detail.opcode; //get the opcode
+		Type instr_type = instr_detail.type; //get the opcode type
+		int instr_extra = ip->extra; //extra after decoding
+		int b_31_26; //the index of opcode
+		/*search optable & special table to find the index of the opcode*/
+		/*special opcode*/
+		int spe_tab_res = search_op(op, specialTable);  //search special table for index
+		if (spe_tab_res != -1) {
+			printf("This is special opcode\n");
+			//31:26 will be 0 & 5:0 is the searh result
+			b_31_26 = 0x0;
+			int b_5_0 = spe_tab_res;
+			printf("The last 6 bis are: %d\n", b_5_0);
+			int rs = 0, rt = 0, rd = 0, origin_extra = 0;
+			args_val(instr, &rs, &rt, &rd, &origin_extra, addr);
+			/*
+			for (int i=0; i<3; i++) {
+				Source src_val = instr_detail.srcs[i];
+				if (src_val == RS) {
+					rs = ip->args[i];
+					printf("The rs is: %x\n", rs);
+					//rs = (rs | 0x2000000) << 21;
+					rs = rs * 0x200000;
+					printf("The instruction only containing rs is: %x\n", rs);
+				}
+				else if (src_val == RT) {
+					rt = ip->args[i];
+					printf("The rt is: %x\n", rt);
+					//rt = (rt | 0x100000) << 16;
+					rt = rt * 0x10000;
+					printf("The instruction only containing rt is: %x\n", rt);
+				}
+				else if (src_val == RD) {
+					rd = ip->args[i];
+					printf("The rd is: %x\n", rd);
+					//rd = (rd | 0x8000) << 11;
+					rd = rd * 0x800;
+					printf("The instruction only containing rd is: %x\n", rd);
+				}
+				else if (src_val == EXTRA)
+					origin_extra = reverse_extra(instr_extra, instr_detail, addr);
+			}
+			*/
+			instr_value = rs | rt | rd | origin_extra | b_5_0;
+			ip->value = instr_value;
+			printf("The instruction value is: %x\n", ip->value);
+			//printf("The instruction value in decimal is: %d\n", ip->value);
+
+			return 1;
+		}
+		/*bcond opcode*/
+		if (!check_bcond(op)) {
+			printf("This is bcond opcode\n");
+			//31:26 will be 1 and 20:16 will be the corresponding bcond number
+			//sources are all {RS, EXTRA, NSRC} and types are all ITYP
+			b_31_26 = 0x1;
+			int b_20_16;
+			if (op == OP_BLTZ)
+					b_20_16 =  0x0;
+			else if (op == OP_BGEZ)
+					b_20_16 = 0x1;
+			else if (op == OP_BLTZAL)
+					b_20_16 = 0x10;
+			else if (op == OP_BGEZAL)
+					b_20_16 = 0x11;
+			else
+					return 0;
+			//rs is args[0] and rs is 25:21
+			int b_25_21 = ip->args[0];
+			//extra is 15:0
+			int b_15_0 = ip->extra;
+			//concat those numbers together to get the value
+			instr_value = (b_31_26 | 0x80000000) << 26;
+			printf("The 31:26 bits are: %x\n", instr_value);
+			instr_value = instr_value | ((b_25_21 | 0x2000000) << 21);
+			printf("The 31:21 bits are: %x\n", instr_value);
+			instr_value = instr_value | ((b_20_16 | 0x100000) << 16);
+			printf("The 31:16 bits are: %x\n", instr_value);
+			instr_value = instr_value | b_15_0;
+			ip->value = instr_value;
+			printf("The instruction value is: %x\n", ip->value);
+
+			return 1;
+		}
+		/*opcode*/
+		int op_tab_res = search_op(op, opcodeTable); //search opcode table for index
+		if (op_tab_res != -1) {
+			printf("This is normal opcode\n");
+			b_31_26 = op_tab_res * 0x4000000;
+			int rs = 0, rt = 0, rd = 0, origin_extra = 0;
+			args_val(instr, &rs, &rt, &rd, &origin_extra, addr);
+			/*args_val verbose*/
+			instr_value = b_31_26 | rs | rt | rd | origin_extra;
+			ip->value = instr_value;
+			printf("The instruction value is: %x\n", ip->value);
+
+			return 1;
+		}
 
     return 0;
 }
@@ -306,7 +409,7 @@ int decode(Instruction *ip, unsigned int addr) {
 
 /*checking what flag provided*/
 int check_flag(char *arg, char *flag) {
-	int res = strcmp(arg, &flag[0]);
+	int res = str_cmp(arg, &flag[0]);
 	//printf("The flag is: %s\n", flag);
 	//printf("The result is: %d\n", res);
 	if (!res)
@@ -417,5 +520,3 @@ int six_args(int a_first, int d_first, char *end_spec, char *addr_spec) {
 
     return 1;
 }
-
-
