@@ -51,6 +51,7 @@ int check_bcond(Opcode op); /*check if the opcode is a bcond*/
 int reverse_extra(int extra, Instr_info instr, unsigned int addr); /*reverse calculate extra*/
 /*calculate the original rs rt rd and extra value for opcode other than bcond*/
 void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, unsigned int addr);
+void fill_regs(Instruction *instr, int value); /*fill up the regs*/
 
 /*global var for flags*/
 char *flag_h = "-h"; /*help menu*/
@@ -204,6 +205,7 @@ int encode(Instruction *ip, unsigned int addr) {
 			//printf("The instruction value is: %x\n", ip->value);
 			//printf("The instruction value in decimal is: %d\n", ip->value);
 			//printf("%d", ip->value);
+			fill_regs(ip, instr_value); //fill the regs up
 
 			return 1;
 		}
@@ -241,6 +243,7 @@ int encode(Instruction *ip, unsigned int addr) {
 			//printf("The last 16 bits are: %x\n", b_15_0);
 			//printf("The instruction value is: %x\n", ip->value);
 			//printf("%d", ip->value);
+			fill_regs(ip, instr_value); //fill the regs up
 
 			return 1;
 		}
@@ -261,6 +264,7 @@ int encode(Instruction *ip, unsigned int addr) {
 			ip->value = instr_value;
 			//printf("The instruction value is: %x\n", ip->value);
 			//printf("%d", ip->value);
+			fill_regs(ip, instr_value); //fill the regs up
 
 			return 1;
 		}

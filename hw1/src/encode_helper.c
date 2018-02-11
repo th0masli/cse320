@@ -123,3 +123,12 @@ void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, 
     }
   }
 }
+
+/*fill up the regs*/
+void fill_regs(Instruction *instr, int value) {
+  instr->regs[0] = value >> 21 & 0x1f; /*RS 25:21*/
+  //printf("The rs is: %d\n", rs);
+  instr->regs[1] = value >> 16 & 0x1f; /*RT 20:16*/
+  //printf("The rt is: %d\n", rt);
+  instr->regs[2] = value >> 11 & 0x1f; /*RD 15:11*/
+}

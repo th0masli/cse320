@@ -96,6 +96,7 @@ int main(int argc, char **argv)
     /*encode*/
     /*-a with or without address or little endianness*/
     if (!(global_options & 0x7)) {
+      //printf("condition%d\n", 0);
       //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
       //printf("The base_addr is: %x\n", base_addr);
@@ -134,7 +135,8 @@ int main(int argc, char **argv)
       //stdout
     }
     /*-a with big endianness and with or without address*/
-    if ((global_options & 0x4) == 0x4) {
+    if ((global_options & 0x7) == 0x4) {
+      //printf("condition%d\n", 1);
       //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
       //printf("The base_addr is: %x\n", base_addr);
@@ -169,7 +171,8 @@ int main(int argc, char **argv)
     }
     /*decode*/
     /*-d with or without address or little endianness*/
-    if ((global_options & 0x2) == 0x2) {
+    if ((global_options & 0x7) == 0x2) {
+      //printf("condition%d\n", 2);
       //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
       int byte[4];
@@ -197,8 +200,11 @@ int main(int argc, char **argv)
       }
     }
     /*-d with big endianness and with or without address*/
-    if ((global_options & 0x6) == 0x6) {
+    if ((global_options & 0x7) == 0x6) {
+      //printf("condition%d\n", 3);
+      //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
+      //printf("The base address is: %x\n", base_addr);
       int byte[4];
       int n = 1;
       while (n) {
@@ -212,7 +218,7 @@ int main(int argc, char **argv)
           break;
         int bin_instr = byte[0]*0x1000000 + byte[1]*0x10000 + byte[2]*0x100 + byte[3];
         //bin_instr = convert_endian(bin_instr);
-        //printf("The instruction is: %x\n", bin_instr);
+        printf("The instruction is: %x\n", bin_instr);
         Instruction ip; //initiate a new Instruction structure
         ip.value = bin_instr;
         int decode_res = decode(&ip, base_addr);
