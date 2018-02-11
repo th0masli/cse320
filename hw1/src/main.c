@@ -115,7 +115,17 @@ int main(int argc, char **argv)
         int encode_res = encode(&ip, base_addr);
         if (!encode_res)
           exit(EXIT_FAILURE);
-        printf("%x", ip.value);
+        //printf("%d", ip.value);
+        int out_val = ip.value;
+        int byte0, byte1, byte2, byte3;
+        byte0 = (out_val >> 24) & 0xff;
+        putchar(byte0);
+        byte1 = (out_val >> 16) & 0xff;
+        putchar(byte1);
+        byte2 = (out_val >> 8) & 0xff;
+        putchar(byte2);
+        byte3 = out_val & 0xff;
+        putchar(byte3);
       }
       //stdout
     }
