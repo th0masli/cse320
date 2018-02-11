@@ -106,6 +106,8 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 		printf("The modified_addr is: %x\n", modified_addr);
 		unsigned_extra = unsigned_extra + modified_addr;
 		printf("The unsigned_extra of type J in hex is: %x\n", unsigned_extra);
+		//if (modified_addr != (unsigned_extra & 0xf0000000))
+			//return 0;
 		return unsigned_extra;
 	}
 	/*OP_BREAK*/
@@ -136,29 +138,29 @@ int check_extra(Source srcs[3]) {
 
 /*fill ip when decoding*/
 void fill_ip_decoding(Instruction *ip, Instr_info instr, int bi_word, unsigned int addr) {
-		ip->info = &instr;
-        printf("The instruction is: %s\n", instr.format);
-        printf("The ip's info is: %s\n", ip->info->format);
-        /*extra value R, I, J; if use then set*/
-        if (!check_extra(instr.srcs)) {
-            int extra_value = get_extra(bi_word, instr, addr);
-            printf("The extra_value in decimal is: %d\n", extra_value);
-            /*will do extra instruction*/
-            ip->extra = extra_value;
-        }
-        /*args instruction arguments*/
-        for (int i=0; i < 3; i++) {
-            Source src_val = instr.srcs[i];
-            if (src_val == NSRC)
-                ip->args[i] = 0;
-            else if (src_val == RS)
-                ip->args[i] = ip->regs[0];
-            else if (src_val == RT)
-                ip->args[i] = ip->regs[1];
-            else if (src_val == RD)
-                ip->args[i] = ip->regs[2];
-            else if (src_val == EXTRA)
-                ip->args[i] = ip->extra;
-        }
-        printf("The 3rd argument is: %d\n", ip->args[2]);
+			ip->info = &instr;
+      printf("The instruction is: %s\n", instr.format);
+      printf("The ip's info is: %s\n", ip->info->format);
+      /*extra value R, I, J; if use then set*/
+      if (!check_extra(instr.srcs)) {
+          int extra_value = get_extra(bi_word, instr, addr);
+          printf("The extra_value in decimal is: %d\n", extra_value);
+          /*will do extra instruction*/
+          ip->extra = extra_value;
+      }
+      /*args instruction arguments*/
+      for (int i=0; i < 3; i++) {
+          Source src_val = instr.srcs[i];
+          if (src_val == NSRC)
+              ip->args[i] = 0;
+          else if (src_val == RS)
+              ip->args[i] = ip->regs[0];
+          else if (src_val == RT)
+              ip->args[i] = ip->regs[1];
+          else if (src_val == RD)
+              ip->args[i] = ip->regs[2];
+          else if (src_val == EXTRA)
+              ip->args[i] = ip->extra;
+      }
+      printf("The 3rd argument is: %d\n", ip->args[2]);
 }

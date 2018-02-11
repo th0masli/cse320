@@ -152,6 +152,12 @@ int validargs(int argc, char **argv)
  * binary code for the instruction.
  */
 int encode(Instruction *ip, unsigned int addr) {
+		/*
+		if (ip->info->type == JTYP){
+			if ((addr&0xf0000000) != (ip->extra&0xf0000000))
+				return 0;
+		}
+		*/
 		int instr_value; //decode to get the instruction value and assign it to ip->value
 		Instruction instr = *ip; //make a copy of the instruction
 		Instr_info instr_detail = *(ip->info); //make a copy of the instruction info
@@ -372,6 +378,11 @@ int decode(Instruction *ip, unsigned int addr) {
         instr = instrTable[instr_index];
         ip->info = &instr;
         fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
+				/*jumps to addresses whose four most-significant bits differ from those of the current PC value*/
+				if (ip->info->type == JTYP){
+					if ((addr&0xf0000000) != (ip->extra&0xf0000000))
+						return 0;
+				}
 
         return 1;
         /*
