@@ -96,38 +96,93 @@ int main(int argc, char **argv)
     /*encode*/
     /*-a with or without address or little endianness*/
     if (!(global_options & 0x7)) {
-      printf("The global_options is: %x\n", global_options);
+      //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
-      printf("The base_addr is: %x\n", base_addr);
+      //printf("The base_addr is: %x\n", base_addr);
       //stdin
       char mnemonic[120];
       while (fgets(mnemonic, 120, stdin) != NULL) {
-        printf("The input mnemonic is: %s\n", mnemonic);
+        //printf("The input mnemonic is: %s\n", mnemonic);
         Instruction ip; //initiate a new Instruction structure
         /*search for the right instruction information*/
         int info_index = encode_search(mnemonic, &ip);
+        //printf("The info index is: %d\n", info_index);
+        if (info_index == -1)
+          exit(EXIT_FAILURE);
         //printf("The index of the instr info is: %d\n", info_index);
-        printf("The format is: %s\n", instrTable[info_index].format);
+        //printf("The format is: %s\n", instrTable[info_index].format);
         ip.info = &instrTable[info_index];
         int encode_res = encode(&ip, base_addr);
         if (!encode_res)
           exit(EXIT_FAILURE);
+        printf("%x", ip.value);
       }
       //stdout
     }
     /*-a with big endianness and with or without address*/
     if ((global_options & 0x4) == 0x4) {
-
+      //printf("The global_options is: %x\n", global_options);
+      unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
+      //printf("The base_addr is: %x\n", base_addr);
+      //stdin
+      char mnemonic[120];
+      while (fgets(mnemonic, 120, stdin) != NULL) {
+        //printf("The input mnemonic is: %s\n", mnemonic);
+        Instruction ip; //initiate a new Instruction structure
+        /*search for the right instruction information*/
+        int info_index = encode_search(mnemonic, &ip);
+        if (info_index == -1)
+          exit(EXIT_FAILURE);
+        //printf("The index of the instr info is: %d\n", info_index);
+        //printf("The format is: %s\n", instrTable[info_index].format);
+        ip.info = &instrTable[info_index];
+        int encode_res = encode(&ip, base_addr);
+        if (!encode_res)
+          exit(EXIT_FAILURE);
+        int bin_code = ip.value;
+        ip.value = convert_endian(bin_code);
+        printf("%x", ip.value);
+      }
+      //stdout
     }
     /*decode*/
     /*-d with or without address or little endianness*/
     if ((global_options & 0x2) == 0x2) {
+      //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
-
+      char bin[23];
+      while (fgets(bin, 23, stdin) != NULL) {
+        //printf("The input binary code is: %s\n", bin);
+        /*convert the char bin to int bin*/
+        int bin_hex = str_hex(bin); //convert the char to int
+        //printf("The converted binary code in hex is: %x\n", bin_hex);
+        Instruction ip; //initiate a new Instruction structure
+        ip.value = bin_hex;
+        int decode_res = decode(&ip, base_addr);
+        if (!decode_res)
+          exit(EXIT_FAILURE);
+        print_decode(&ip);
+      }
     }
     /*-d with big endianness and with or without address*/
     if ((global_options & 0x6) == 0x6) {
-
+      unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
+      char bin[23];
+      while (fgets(bin, 23, stdin) != NULL) {
+        //printf("The input binary code is: %s\n", bin);
+        /*convert the char bin to int bin*/
+        int bin_hex = str_hex(bin); //convert the char to int
+        bin_hex = convert_endian(bin_hex); //convert to little endianness to compute
+        //printf("The converted binary code in hex is: %x\n", bin_hex);
+        Instruction ip; //initiate a new Instruction structure
+        ip.value = bin_hex;
+        int decode_res = decode(&ip, base_addr);
+        if (!decode_res)
+          exit(EXIT_FAILURE);
+        int bin_code = ip.value;
+        ip.value = convert_endian(bin_code); //convert back to big endianness
+        print_decode(&ip);
+      }
     }
 
     return EXIT_SUCCESS;

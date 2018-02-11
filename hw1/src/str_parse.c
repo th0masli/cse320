@@ -36,6 +36,8 @@ int str_hex(char *str) {
 			temp = *str -'a' + 10;
 		else
 			temp = *str - '0';
+		if (temp < 0)
+			return num;
 		num = num*16;
 		num = num + temp;
 
