@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     debug("Options: 0x%X", global_options);
     /*-h flag*/
     if(global_options & 0x1) {
-    	printf("Bingo\n");
+    	//printf("Bingo\n");
       USAGE(*argv, EXIT_SUCCESS);
     }
     /*default endianness is little*/
@@ -113,9 +113,13 @@ int main(int argc, char **argv)
         //printf("The format is: %s\n", instrTable[info_index].format);
         ip.info = &instrTable[info_index];
         int encode_res = encode(&ip, base_addr);
+        base_addr += 4;
         if (!encode_res)
           exit(EXIT_FAILURE);
-        //printf("%d", ip.value);
+        //printf("%x", ip.value);
+        int bin_code = ip.value;
+        ip.value = convert_endian(bin_code);
+        //printf("%x", ip.value);
         int out_val = ip.value;
         int byte0, byte1, byte2, byte3;
         byte0 = (out_val >> 24) & 0xff;
@@ -147,11 +151,19 @@ int main(int argc, char **argv)
         //printf("The format is: %s\n", instrTable[info_index].format);
         ip.info = &instrTable[info_index];
         int encode_res = encode(&ip, base_addr);
+        base_addr += 4;
         if (!encode_res)
           exit(EXIT_FAILURE);
-        int bin_code = ip.value;
-        ip.value = convert_endian(bin_code);
-        printf("%x", ip.value);
+        int out_val = ip.value;
+        int byte0, byte1, byte2, byte3;
+        byte0 = (out_val >> 24) & 0xff;
+        putchar(byte0);
+        byte1 = (out_val >> 16) & 0xff;
+        putchar(byte1);
+        byte2 = (out_val >> 8) & 0xff;
+        putchar(byte2);
+        byte3 = out_val & 0xff;
+        putchar(byte3);
       }
       //stdout
     }
@@ -160,37 +172,54 @@ int main(int argc, char **argv)
     if ((global_options & 0x2) == 0x2) {
       //printf("The global_options is: %x\n", global_options);
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
-      char bin[23];
-      while (fgets(bin, 23, stdin) != NULL) {
-        //printf("The input binary code is: %s\n", bin);
-        /*convert the char bin to int bin*/
-        int bin_hex = str_hex(bin); //convert the char to int
-        //printf("The converted binary code in hex is: %x\n", bin_hex);
+      int byte[4];
+      int n = 1;
+      while (n) {
+        for (int i=0; i<4; i++) {
+          byte[i] = getchar();
+          //printf("The current byte is: %x\n", byte[i]);
+          if (byte[i] == -1)
+            break;
+        }
+        if (byte[0] == -1)
+          break;
+        int bin_instr = byte[0]*0x1000000 + byte[1]*0x10000 + byte[2]*0x100 + byte[3];
+        bin_instr = convert_endian(bin_instr);
+        //printf("The instruction is: %x\n", bin_instr);
         Instruction ip; //initiate a new Instruction structure
-        ip.value = bin_hex;
+        ip.value = bin_instr;
         int decode_res = decode(&ip, base_addr);
+        base_addr += 4;
         if (!decode_res)
           exit(EXIT_FAILURE);
+        ip.value = convert_endian(bin_instr);
         print_decode(&ip);
       }
     }
     /*-d with big endianness and with or without address*/
     if ((global_options & 0x6) == 0x6) {
       unsigned int base_addr = global_options & 0xfffff000; //clearing out 3 lsb
-      char bin[23];
-      while (fgets(bin, 23, stdin) != NULL) {
-        //printf("The input binary code is: %s\n", bin);
-        /*convert the char bin to int bin*/
-        int bin_hex = str_hex(bin); //convert the char to int
-        bin_hex = convert_endian(bin_hex); //convert to little endianness to compute
-        //printf("The converted binary code in hex is: %x\n", bin_hex);
+      int byte[4];
+      int n = 1;
+      while (n) {
+        for (int i=0; i<4; i++) {
+          byte[i] = getchar();
+          //printf("The current byte is: %x\n", byte[i]);
+          if (byte[i] == -1)
+            break;
+        }
+        if (byte[0] == -1)
+          break;
+        int bin_instr = byte[0]*0x1000000 + byte[1]*0x10000 + byte[2]*0x100 + byte[3];
+        //bin_instr = convert_endian(bin_instr);
+        //printf("The instruction is: %x\n", bin_instr);
         Instruction ip; //initiate a new Instruction structure
-        ip.value = bin_hex;
+        ip.value = bin_instr;
         int decode_res = decode(&ip, base_addr);
+        base_addr += 4;
         if (!decode_res)
           exit(EXIT_FAILURE);
-        int bin_code = ip.value;
-        ip.value = convert_endian(bin_code); //convert back to big endianness
+        //ip.value = convert_endian(bin_instr);
         print_decode(&ip);
       }
     }

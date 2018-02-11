@@ -164,6 +164,7 @@ int encode(Instruction *ip, unsigned int addr) {
 		int spe_tab_res = search_op(op, specialTable);  //search special table for index
 		if (spe_tab_res != -1) {
 			//printf("This is special opcode\n");
+			//printf("The index is: %d\n", spe_tab_res);
 			//31:26 will be 0 & 5:0 is the searh result
 			b_31_26 = 0x0;
 			int b_5_0 = spe_tab_res;
@@ -226,16 +227,18 @@ int encode(Instruction *ip, unsigned int addr) {
 			//rs is args[0] and rs is 25:21
 			int b_25_21 = ip->args[0];
 			//extra is 15:0
-			int b_15_0 = ip->extra;
+			int origin_extra = reverse_extra(ip->args[1], instr_detail, addr);
+			int b_15_0 = origin_extra;
 			//concat those numbers together to get the value
-			instr_value = (b_31_26 | 0x80000000) << 26;
+			instr_value = b_31_26 * 0x4000000;
 			//printf("The 31:26 bits are: %x\n", instr_value);
-			instr_value = instr_value | ((b_25_21 | 0x2000000) << 21);
+			instr_value = instr_value + (b_25_21 * 0x200000);
 			//printf("The 31:21 bits are: %x\n", instr_value);
-			instr_value = instr_value | ((b_20_16 | 0x100000) << 16);
+			instr_value = instr_value + (b_20_16 * 0x10000);
 			//printf("The 31:16 bits are: %x\n", instr_value);
-			instr_value = instr_value | b_15_0;
+			instr_value = instr_value + b_15_0;
 			ip->value = instr_value;
+			//printf("The last 16 bits are: %x\n", b_15_0);
 			//printf("The instruction value is: %x\n", ip->value);
 			//printf("%d", ip->value);
 
@@ -245,6 +248,7 @@ int encode(Instruction *ip, unsigned int addr) {
 		int op_tab_res = search_op(op, opcodeTable); //search opcode table for index
 		if (op_tab_res != -1) {
 			//printf("This is normal opcode\n");
+			//printf("The index is: %d\n", op_tab_res);
 			b_31_26 = op_tab_res * 0x4000000;
 			int rs = 0, rt = 0, rd = 0, origin_extra = 0;
 			args_val(ip, &rs, &rt, &rd, &origin_extra, addr);

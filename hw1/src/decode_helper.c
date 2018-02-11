@@ -174,4 +174,5 @@ void print_decode(Instruction *ip) {
 		int *args;
 		args = ip->args;
 		printf(format, args[0], args[1], args[2]);
+		printf("\n");
 }

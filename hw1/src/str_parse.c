@@ -38,8 +38,25 @@ int str_hex(char *str) {
 			temp = *str - '0';
 		if (temp < 0)
 			return num;
-		num = num*16;
+		num = num * 16;
 		num = num + temp;
+
+		str++;
+	}
+
+	return num;
+}
+
+/*convert binary string to int*/
+int str_bin(char *str) {
+	int num, tmp;
+	num = 0;
+	while (*str) {
+		tmp = *str - '0';
+		if (tmp < 0)
+			return num;
+		num = num * 2;
+		num = num + tmp;
 
 		str++;
 	}

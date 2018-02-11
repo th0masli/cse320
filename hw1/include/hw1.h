@@ -12,5 +12,7 @@ int str_hex(char *str);
 int convert_endian(int value);
 /*stdout when decoding*/
 void print_decode(Instruction *ip);
+/*convert binary string to int*/
+int str_bin(char *str);
 
 #endif
