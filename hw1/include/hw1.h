@@ -14,5 +14,7 @@ int convert_endian(int value);
 void print_decode(Instruction *ip);
 /*convert binary string to int*/
 int str_bin(char *str);
+/*return the length of the string*/
+int slen(char *str);
 
 #endif

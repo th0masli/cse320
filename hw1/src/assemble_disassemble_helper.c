@@ -3,6 +3,7 @@
 #include "hw1.h"
 
 int tlen(Instr_info *table); /*return the length of the table*/
+int str_cmp(char *str0, char *str1); /*compare 2 strings*/
 
 /*endianness converter*/
 int convert_endian(int value) {
@@ -23,15 +24,19 @@ int encode_search(char *mnemonic, Instruction *ip) {
     //printf("I got the mnemonic: %s\n", mnemonic);
     Instr_info *instrTable_pointer = &instrTable[0];
     int table_len = tlen(instrTable_pointer);
-    table_len = 65;
+    table_len = 64;
     //printf("The table's length is: %d\n", table_len);
     for (int i=0; i<table_len; i++) {
       char *instr_format = instrTable[i].format;
       //printf("The index is: %d\n", i);
       //printf("The current format is: %s\n", instr_format);
       int map_res = sscanf(mnemonic, instr_format, &(ip->args[0]), &(ip->args[1]), &(ip->args[2]));
-      if (map_res > 0)
+      //printf("Mapping result is: %d\n", map_res);
+      if (map_res > 0 || (!str_cmp(mnemonic, instr_format))) {
+        //printf("The register from sccanf is: %d\n", ip->args[1]);
+        //printf("The index is: %d\n", i);
         return i;
+      }
     }
 
     return -1;

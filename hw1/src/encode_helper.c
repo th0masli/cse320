@@ -53,12 +53,16 @@ int reverse_extra(int extra, Instr_info instr, unsigned int addr) {
   if (instr_type == RTYP) {
     origin_extra = extra; //5 bits from 10:6
     //origin_extra = (origin_extra | 0x400) << 6;
-    origin_extra = origin_extra * 0x400;
+    //origin_extra = origin_extra * 0x400;
+    origin_extra = origin_extra << 6;
+    //printf("The original extra in decimal is: %d\n", origin_extra);
+    //printf("The original extra in hex is: %x\n", origin_extra);
   }
   else if (instr_type == ITYP) {
     /*not branch instruction, get 15:0*/
     if (check_branch(instr) == -1) {
-      origin_extra = extra; //16 bits from 15:0
+      origin_extra = extra & 0xffff; //16 bits from 15:0
+      //printf("The extra value is: %x\n", extra);
     }
     /*branch instruction*/
     else if (check_branch(instr) != -1) {
@@ -98,25 +102,29 @@ void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, 
       *rs = instr->args[i];
       //printf("The rs is: %x\n", *rs);
       //rs = (rs | 0x2000000) << 21;
-      *rs = *rs * 0x200000;
+      //*rs = *rs * 0x200000;
+      *rs = *rs << 21;
       //printf("The instruction only containing rs is: %x\n", *rs);
     }
     else if (src_val == RT) {
       *rt = instr->args[i];
       //printf("The rt is: %x\n", *rt);
       //rt = (rt | 0x100000) << 16;
-      *rt = *rt * 0x10000;
+      //*rt = *rt * 0x10000;
+      *rt = *rt << 16;
       //printf("The instruction only containing rt is: %x\n", *rt);
     }
     else if (src_val == RD) {
       *rd = instr->args[i];
       //printf("The rd is: %x\n", *rd);
       //rd = (rd | 0x8000) << 11;
-      *rd = *rd * 0x800;
+      //*rd = *rd * 0x800;
+      *rd = *rd << 11;
       //printf("The instruction only containing rd is: %x\n", *rd);
     }
     else if (src_val == EXTRA) {
       int extra = instr->args[i];
+      //printf("Extra in args is: %d\n", extra);
       instr->extra = extra;
       *origin_extra = reverse_extra(extra, instr_detail, addr);
       //printf("The original extra value is: %x\n", *origin_extra);

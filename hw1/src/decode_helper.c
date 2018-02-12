@@ -51,6 +51,7 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 		//tmp = tmp >> 27;
 		//extra = tmp; /*bit moves to get the 10:6*/
 		extra = bi_word >> 6 & 0x1f; /*bit moves to get the 10:6*/
+		//printf("The extra value is: %d\n", extra);
 	}
 	else if (instr_type == ITYP) {
 		/*not branch instruction, get 15:0*/
@@ -60,7 +61,8 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 			tmp = tmp >> 16;
 			extra = tmp;
 			*/
-			extra = bi_word & 0xffff; /*bit moves to get the 15:0*/
+			short extra_tmp = bi_word & 0xffff; /*bit moves to get the 15:0*/
+			extra = extra_tmp;
 		}
 		/*branch instruction*/
 		else if (check_branch(instr) != -1) {

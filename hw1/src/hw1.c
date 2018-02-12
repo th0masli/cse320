@@ -252,7 +252,8 @@ int encode(Instruction *ip, unsigned int addr) {
 		if (op_tab_res != -1) {
 			//printf("This is normal opcode\n");
 			//printf("The index is: %d\n", op_tab_res);
-			b_31_26 = op_tab_res * 0x4000000;
+			//b_31_26 = op_tab_res * 0x2000000;
+			b_31_26 = op_tab_res << 26;
 			int rs = 0, rt = 0, rd = 0, origin_extra = 0;
 			args_val(ip, &rs, &rt, &rd, &origin_extra, addr);
 			/*args_val verbose*/
@@ -260,6 +261,11 @@ int encode(Instruction *ip, unsigned int addr) {
 				if ((addr&0xf0000000) != (ip->extra&0xf0000000))
 					return 0;
 			}
+			//printf("31:26 is: %x\n", b_31_26);
+			//printf("RS is: %x\n", rs);
+			//printf("RT is: %x\n", rt);
+			//printf("RD is: %x\n", rd);
+			//printf("Extra is: %x\n", origin_extra);
 			instr_value = b_31_26 | rs | rt | rd | origin_extra;
 			ip->value = instr_value;
 			//printf("The instruction value is: %x\n", ip->value);

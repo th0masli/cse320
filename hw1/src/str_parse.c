@@ -6,6 +6,8 @@ int str_cmp(char *str0, char *str1) {
 	{
 		str0++; /*increase address*/
 		str1++;
+		//printf("The current char of str0 is: %c\n", *str0);
+		//printf("The current char of str1 is: %c\n", *str1);
 	}
 
 	if (*str0 == *str1)

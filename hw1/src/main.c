@@ -103,6 +103,9 @@ int main(int argc, char **argv)
       //stdin
       char mnemonic[120];
       while (fgets(mnemonic, 120, stdin) != NULL) {
+        char last_bit = mnemonic[slen(mnemonic)-1];
+        if (last_bit == '\n')
+          mnemonic[slen(mnemonic)-1] = '\0';
         //printf("The input mnemonic is: %s\n", mnemonic);
         Instruction ip; //initiate a new Instruction structure
         /*search for the right instruction information*/
@@ -113,6 +116,7 @@ int main(int argc, char **argv)
         //printf("The index of the instr info is: %d\n", info_index);
         //printf("The format is: %s\n", instrTable[info_index].format);
         ip.info = &instrTable[info_index];
+        //printf("The instruction is: %s\n", ip.info->format);
         int encode_res = encode(&ip, base_addr);
         base_addr += 4;
         if (!encode_res)
@@ -143,6 +147,9 @@ int main(int argc, char **argv)
       //stdin
       char mnemonic[120];
       while (fgets(mnemonic, 120, stdin) != NULL) {
+        char last_bit = mnemonic[slen(mnemonic)-1];
+        if (last_bit == '\n')
+          mnemonic[slen(mnemonic)-1] = '\0';
         //printf("The input mnemonic is: %s\n", mnemonic);
         Instruction ip; //initiate a new Instruction structure
         /*search for the right instruction information*/
