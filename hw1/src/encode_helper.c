@@ -101,7 +101,6 @@ void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, 
     if (src_val == RS) {
       *rs = instr->args[i];
       //printf("The rs is: %x\n", *rs);
-      //rs = (rs | 0x2000000) << 21;
       //*rs = *rs * 0x200000;
       *rs = *rs << 21;
       //printf("The instruction only containing rs is: %x\n", *rs);
@@ -109,7 +108,6 @@ void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, 
     else if (src_val == RT) {
       *rt = instr->args[i];
       //printf("The rt is: %x\n", *rt);
-      //rt = (rt | 0x100000) << 16;
       //*rt = *rt * 0x10000;
       *rt = *rt << 16;
       //printf("The instruction only containing rt is: %x\n", *rt);
@@ -117,7 +115,6 @@ void args_val(Instruction *instr, int *rs, int *rt, int *rd, int *origin_extra, 
     else if (src_val == RD) {
       *rd = instr->args[i];
       //printf("The rd is: %x\n", *rd);
-      //rd = (rd | 0x8000) << 11;
       //*rd = *rd * 0x800;
       *rd = *rd << 11;
       //printf("The instruction only containing rd is: %x\n", *rd);

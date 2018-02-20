@@ -46,48 +46,17 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 	unsigned int tmp;
 	Type instr_type = instr.type;
 	if (instr_type == RTYP) {
-		/*need a unsigned tmp*/
-		//tmp = bi_word << 21;
-		//tmp = tmp >> 27;
-		//extra = tmp; /*bit moves to get the 10:6*/
 		extra = bi_word >> 6 & 0x1f; /*bit moves to get the 10:6*/
 		//printf("The extra value is: %d\n", extra);
 	}
 	else if (instr_type == ITYP) {
 		/*not branch instruction, get 15:0*/
 		if (check_branch(instr) == -1) {
-			/*
-			tmp = bi_word << 16;
-			tmp = tmp >> 16;
-			extra = tmp;
-			*/
 			short extra_tmp = bi_word & 0xffff; /*bit moves to get the 15:0*/
 			extra = extra_tmp;
 		}
 		/*branch instruction*/
 		else if (check_branch(instr) != -1) {
-			/*
-			tmp = bi_word << 16;
-			printf("The tmp is: %x\n", tmp);
-			tmp = tmp >> 16;
-			printf("The tmp is: %x\n", tmp);
-			int sign = tmp >> 15;
-			printf("The sign is: %x\n", sign);
-			//positive number
-			if (sign == 0) {
-				tmp = tmp << 2; //shift 2 bits
-				printf("The temp hex of extra is: %x\n", tmp);
-			}
-			//negative number
-			else if (sign == 1) {
-				tmp = tmp | 0xFFFF0000; //extends to 32 bit
-				tmp = tmp << 2; //shift 2 bits
-				printf("The temp hex of extra is: %x\n", tmp);
-				//tmp = -1 * (~tmp + 1);
-			}
-			extra = (addr + 4) + tmp;
-			printf("The branch extra is: %d\n", extra);
-			*/
 			short extra_16 = (short) bi_word & 0xffff; //get the 15:0 bits
 			//printf("The 15:0 bits are: %x\n", extra_16);
 			int extra_tmp = extra_16;
@@ -99,8 +68,6 @@ int get_extra(int bi_word, Instr_info instr, unsigned int addr) {
 	}
 	else if (instr_type == JTYP) {
 		unsigned int unsigned_extra;
-		//unsigned_extra = bi_word << 8;
-		//unsigned_extra = unsigned_extra >> 6; /*get the 25:0 26 bits and left shift 2 bits*/
 		unsigned_extra = bi_word & 0x3ffffff; /*get the 25:0 26 bits*/
 		//printf("The extra before left shift is: %x\n", unsigned_extra);
 		unsigned_extra = unsigned_extra << 2;

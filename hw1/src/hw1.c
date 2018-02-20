@@ -325,16 +325,6 @@ int decode(Instruction *ip, unsigned int addr) {
             return 0;
         instr = instrTable[instr_index];
         fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
-        /*
-        ip->info = &instr;
-        printf("The instruction is: %s\n", instr.format);
-        printf("The ip's info is: %s\n", ip->info->format);
-        if (!check_extra(instr.srcs)) {
-            extra_value = get_extra(bi_word, instr, addr);
-            printf("The extra_value is: %d\n", extra_value);
-            ip->extra = extra_value;
-        }
-        */
 
         return 1;
     }
@@ -358,16 +348,6 @@ int decode(Instruction *ip, unsigned int addr) {
             return 0;
         instr = instrTable[instr_index];
         fill_ip_decoding(ip, instr, bi_word, addr); /*fill ip when decoding*/
-        /*
-        ip->info = &instr;
-        printf("The instruction is: %s\n", instr.format);
-        printf("The ip's info is: %s\n", ip->info->format);
-        if (!check_extra(instr.srcs)) {
-            extra_value = get_extra(bi_word, instr, addr);
-            printf("The extra_value is: %d\n", extra_value);
-            ip->extra = extra_value;
-        }
-        */
 
         return 1;
     }
