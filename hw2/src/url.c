@@ -33,7 +33,14 @@ url_parse(char *url)
   char *cp, c;
   char *slash, *colon;
 
+  printf("The url is: %s\n", url);
+  printf("The size of struct URL is: %lu\n", sizeof(*up));
+  /*
   if((up = malloc(sizeof(*up))) == NULL)
+    return(NULL);
+  */
+  up = malloc(sizeof(*up));
+  if (up == NULL)
     return(NULL);
   /*
    * Make a copy of the argument that we can fiddle with

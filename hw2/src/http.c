@@ -134,7 +134,8 @@ http_response(HTTP *http)
 {
   void *prev;
   char *response;
-  int len;
+  //int len; // changed to size_t
+  size_t len;
 
   if(http->state != ST_HDRS)
     return(1);
@@ -154,7 +155,8 @@ http_response(HTTP *http)
   strncpy(http->response, response, len);
   do
     http->response[len--] = '\0';
-  while(len >= 0 &&
+  //while(len >= 0 && //comparison of unsigned expression >= 0 is always true
+  while(len > 0 &&
 	(http->response[len] == '\r'
 	 || http->response[len] == '\n'));
   if(sscanf(http->response, "HTTP/%3s %d ", http->version, &http->code) != 2)
@@ -212,7 +214,8 @@ http_parse_headers(HTTP *http)
     FILE *f = http->file;
     HEADERS env = NULL, last = NULL;
     HDRNODE *node;
-    int len;
+    //int len; //changed to type size_t
+    size_t len;
     char *line, *l, *ll, *cp;
 
     while((ll = fgetln(f, &len)) != NULL) {
@@ -240,7 +243,8 @@ http_parse_headers(HTTP *http)
 	while(*cp == ' ')
 	    cp++;
 	node->value = strdup(cp);
-	for(cp = node->key; *cp != NULL; cp++)
+	//for(cp = node->key; *cp != NULL; cp++) // comparison between pointer and integer(char) ('int' and 'void *')
+  for(cp = node->key; cp != NULL; cp++)
 	    if(isupper(*cp))
 		*cp = tolower(*cp);
 	last->next = node;
@@ -283,4 +287,3 @@ http_headers_lookup(HTTP *http, char *key)
     }
     return(NULL);
 }
-

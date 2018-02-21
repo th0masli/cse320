@@ -11,6 +11,8 @@
 
 #include <stdio.h>
 #include <string.h>
+// Added stdlib
+#include <stdlib.h>
 
 #include "debug.h"
 #include "http.h"
@@ -25,6 +27,11 @@ main(int argc, char *argv[])
   IPADDR *addr;
   int port, c, code;
   char *status, *method;
+
+  /*
+  printf("The number of arguments are: %d\n", argc);
+  printf("With args: %s\n", argv[2]);
+  */
 
   parse_args(argc, argv);
   if((up = url_parse(url_to_snarf)) == NULL) {
@@ -55,7 +62,7 @@ main(int argc, char *argv[])
   http_response(http);
   /*
    * At this point, response status and headers are available for querying.
-   * 
+   *
    * Some of the possible HTTP response status codes are as follows:
    *
    *	200	Success -- document follows
