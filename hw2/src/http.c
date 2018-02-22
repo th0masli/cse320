@@ -5,6 +5,7 @@
  *
  * E. Stark, 11/18/97 for CSE 230
  */
+#define _GNU_SOURCE //for fgetline
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,13 +29,14 @@ void http_free_headers(HEADERS env);
 typedef enum { ST_REQ, ST_HDRS, ST_BODY, ST_DONE } HTTP_STATE;
 
 struct http {
-  FILE *file;			/* Stream to remote server */
-  HTTP_STATE state;		/* State of the connection */
-  int code;			/* Response code */
-  char version[4];		/* HTTP version from the response */
-  char *response;		/* Response string with message */
-  HEADERS headers;		/* Reply headers */
+  FILE *file;			// Stream to remote server
+  HTTP_STATE state;		// State of the connection
+  int code;			// Response code
+  char version[4];		// HTTP version from the response
+  char *response;		// Response string with message
+  HEADERS headers;		// Reply headers
 };
+
 
 /*
  * Open an HTTP connection for a specified IP address and port number
@@ -49,8 +51,9 @@ http_open(IPADDR *addr, int port)
 
   if(addr == NULL)
     return(NULL);
-  if((http = malloc(sizeof(*http))) == NULL)
+  if((http = malloc(sizeof(*http))) == NULL) {
     return(NULL);
+  }
   bzero(http, sizeof(*http));
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     free(http);
@@ -81,6 +84,7 @@ http_close(HTTP *http)
 
   err = fclose(http->file);
   free(http->response);
+  http_free_headers(http->headers); // Addded to free the header
   free(http);
   return(err);
 }
@@ -133,9 +137,9 @@ int
 http_response(HTTP *http)
 {
   void *prev;
-  char *response;
+  char *response = NULL;
   //int len; // changed to size_t
-  size_t len;
+  size_t len = 0; // why?
 
   if(http->state != ST_HDRS)
     return(1);
@@ -148,20 +152,30 @@ http_response(HTTP *http)
   }
   rewind(http->file);
   signal(SIGPIPE, prev);
-  response = fgetln(http->file, &len);
-  if(response == NULL
-     || (http->response = malloc(len+1)) == NULL)
+  //response = fgetln(http->file, &len);
+  //response = malloc(len+1);
+  if(!getline(&response, &len, http->file)) {
+    free(response);
     return(1);
+  }
+  if(response == NULL
+     || (http->response = malloc(len+1)) == NULL) {
+    //free(response);
+    free(http->response);
+    return(1);
+  }
   strncpy(http->response, response, len);
+  free(response);
   do
     http->response[len--] = '\0';
   //while(len >= 0 && //comparison of unsigned expression >= 0 is always true
   while(len > 0 &&
 	(http->response[len] == '\r'
 	 || http->response[len] == '\n'));
-  if(sscanf(http->response, "HTTP/%3s %d ", http->version, &http->code) != 2)
+  if(sscanf(http->response, "HTTP/%3s %d ", http->version, &(http->code)) != 2)
     return(1);
   http->headers = http_parse_headers(http);
+  //http->headers = NULL;
   http->state = ST_BODY;
   return(0);
 }
@@ -204,6 +218,7 @@ typedef struct HDRNODE {
     struct HDRNODE *next;
 } HDRNODE;
 
+
 /*
  * Function for parsing RFC 822 header lines directly from input stream.
  */
@@ -214,43 +229,88 @@ http_parse_headers(HTTP *http)
     FILE *f = http->file;
     HEADERS env = NULL, last = NULL;
     HDRNODE *node;
+    // maybe?
+    //HEADERS node;
     //int len; //changed to type size_t
-    size_t len;
+    size_t len = 0; //why?
     char *line, *l, *ll, *cp;
+    ll = NULL; // initiate the buffer to NULL
+    ssize_t l_size; // Added for the return value of getline
 
-    while((ll = fgetln(f, &len)) != NULL) {
-	line = l = malloc(len+1);
-	l[len] = '\0';
-	strncpy(l, ll, len);
-	while(len > 0 && (l[len-1] == '\n' || l[len-1] == '\r'))
-	      l[--len] = '\0';
-	if(len == 0) {
-	    free(line);
-	    break;
-	}
-	node = malloc(sizeof(HDRNODE));
-	node->next = NULL;
-	for(cp = l; *cp == ' '; cp++) ;
-	l = cp;
-	for( ; *cp != ':' && *cp != '\0'; cp++) ;
-	if(*cp == '\0' || *(cp+1) != ' ') {
-	    free(line);
-	    free(node);
-	    continue;
-	}
-	*cp++ = '\0';
-	node->key = strdup(l);
-	while(*cp == ' ')
-	    cp++;
-	node->value = strdup(cp);
-	//for(cp = node->key; *cp != NULL; cp++) // comparison between pointer and integer(char) ('int' and 'void *')
-  for(cp = node->key; cp != NULL; cp++)
-	    if(isupper(*cp))
-		*cp = tolower(*cp);
-	last->next = node;
-	last = node;
-	free(line);
+    //while((ll = fgetln(f, &len)) != NULL) {
+    while((l_size = getline(&ll, &len, f)) != -1) {
+      if (!strcasecmp(ll, "\r\n")) {
+        //printf("It's over!\n");
+        break;
+      }
+      printf("The getline result is: %lu\n", l_size);
+      printf("The buffer now is: %s\n", ll);
+      printf("=====================\n");
+      //printf("The len is: %lu\n", sizeof(len));
+      line = l = malloc(len+1);
+    	l[len] = '\0';
+    	strncpy(l, ll, len); //make a copy of read line buffer
+      //free(ll); // free the buffer when reading ends
+      // get rid of \r and \n
+    	while(len > 0 && (l[len-1] == '\n' || l[len-1] == '\r'))
+    	    l[--len] = '\0';
+      // if len is 0 after eliminating \r and \n then it should terminate
+    	if(len == 0) {
+    	   free(line);
+    	   break;
+    	}
+    	node = malloc(sizeof(HDRNODE));
+    	node->next = NULL;
+      // maybe get rid of the front space in l?
+    	for(cp = l; *cp == ' '; cp++) ;
+    	   l = cp;
+    	for( ; *cp != ':' && *cp != '\0'; cp++) ;
+      	 if(*cp == '\0' || *(cp+1) != ' ') {
+      	    free(line);
+      	    free(node);
+      	    continue;
+      	 }
+    	*cp++ = '\0';
+    	node->key = strdup(l);
+      char *tmp = node->key;
+      while (*tmp != '\0') { // || tmp != '\n' || tmp != '\r') {
+        if (isupper(*tmp))
+          *tmp = tolower(*tmp);
+        tmp++;
+      }
+    	while(*cp == ' ')
+    	    cp++;
+    	node->value = strdup(cp);
+    	//for(cp = node->key; *cp != NULL; cp++) // comparison between pointer and integer(char) ('int' and 'void *')
+      /*
+      for(cp = node->key; cp != NULL; cp++) {
+          if(isupper(*cp))
+            *cp = tolower(*cp);
+      }
+      */
+      //printf("The node's key is: %s\n", node->key);
+
+      if (env != NULL) {
+        last->next = node;
+        last = node;
+      }
+      if (env == NULL) {
+        env = node;
+        last = env;
+      }
+      /*
+      last->next = node;
+      last = node;
+      */
+      //free(l);
+      //free(node);
+      free(line); // free line will free both l and cp
+      node = NULL;
     }
+    free(node);
+    free(ll);
+    //printf("The second header is: %s\n", (env->next)->key);
+
     return(env);
 }
 

@@ -33,42 +33,48 @@ url_parse(char *url)
   char *cp, c;
   char *slash, *colon;
 
-  printf("The url is: %s\n", url);
-  printf("The size of struct URL is: %lu\n", sizeof(*up));
-  /*
-  if((up = malloc(sizeof(*up))) == NULL)
+  //printf("The url is: %s\n", url);
+  //printf("The size of struct URL is: %lu\n", sizeof(*up));
+
+  if((up = malloc(sizeof(*up))) == NULL) {
+    //free(up);
     return(NULL);
-  */
-  up = malloc(sizeof(*up));
-  if (up == NULL)
-    return(NULL);
+  }
   /*
    * Make a copy of the argument that we can fiddle with
    */
   if((up->stuff = strdup(url)) == NULL) {
-    free(up);
+    //free(up->stuff);
+    //free(up);
     return(NULL);
   }
+  /* initialize the up */
+  up->method = NULL;
+  up->hostname = NULL;
   up->dnsdone = 0;
   bzero(&up->addr, sizeof(struct in_addr));
   /*
    * Now ready to parse the URL
    */
   cp = up->stuff;
-  slash = strchr(cp, '/');
-  colon = strchr(cp, ':');
+  slash = strchr(cp, '/'); // search the first '/' in cp
+  colon = strchr(cp, ':'); // search the first  ':' in cp
   if(colon != NULL) {
     /*
      * If a colon occurs before any slashes, then we assume the portion
      * of the URL before the colon is the access method.
      */
-    if(colon < slash) {
+    if((colon < slash) && ((slash-colon) == 1)) {
       *colon = '\0';
-      free(up->method);
+      //free(up->method);
       up->method = strdup(cp);
       cp = colon+1;
       if(!strcasecmp(up->method, "http"))
-	up->port = 80;
+	       up->port = 80;
+    } else {
+      /* slash must be right following colon */
+      url_free(up);
+      return(NULL);
     }
     if(*(slash+1) == '/') {
       /*
@@ -78,24 +84,29 @@ url_parse(char *url)
        */
       for(cp = slash+2; *cp != '\0' && *cp != ':' && *cp != '/'; cp++)
 	;
+      //for(cp = slash+2; *cp != '\0' && *cp != ':' && *cp != '/'; cp++)
       c = *cp;
       *cp = '\0';
-      free(up->hostname);
+      //free(up->hostname);
       up->hostname = slash+2;
       *cp = c;
       /*
        * If we found a ':', then we have to collect the port number
        */
       if(*cp == ':') {
-	char *cp1;
-	cp1 = ++cp;
-	while(isdigit(*cp))
-	  cp++;
-	c = *cp;
-	*cp = '\0';
-	up->port = atoi(cp1);
-	*cp = c;
+      	char *cp1;
+      	cp1 = ++cp;
+      	while(isdigit(*cp))
+      	  cp++;
+      	c = *cp;
+      	*cp = '\0';
+      	up->port = atoi(cp1);
+      	*cp = c;
       }
+    } else {
+      /*must be 2 slashes*/
+      url_free(up);
+      return(NULL);
     }
     if(*cp == '\0')
       up->path = "/";
@@ -106,7 +117,10 @@ url_parse(char *url)
      * No colon: a relative URL with no method or hostname
      */
     up->path = cp;
+    url_free(up);
+    return(NULL);
   }
+
   return(up);
 }
 
@@ -117,9 +131,10 @@ url_parse(char *url)
 void
 url_free(URL *up)
 {
-  free(up->stuff);
+  //free(up->stuff);
+  if(up->stuff != NULL) free(up->stuff);
   if(up->method != NULL) free(up->method);
-  if(up->hostname != NULL) free(up->hostname);
+  //if(up->hostname != NULL) free(up->hostname);
   free(up);
 }
 
