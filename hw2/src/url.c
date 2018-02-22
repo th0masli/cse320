@@ -58,6 +58,7 @@ url_parse(char *url)
    * Now ready to parse the URL
    */
   cp = up->stuff;
+  //cp = strdup(up->stuff);
   slash = strchr(cp, '/'); // search the first '/' in cp
   colon = strchr(cp, ':'); // search the first  ':' in cp
   if(colon != NULL) {
@@ -65,18 +66,20 @@ url_parse(char *url)
      * If a colon occurs before any slashes, then we assume the portion
      * of the URL before the colon is the access method.
      */
-    if(colon < slash) {
+    // colon should right before 1st slash
+    //if(colon < slash) {
+    if((colon < slash) && ((slash-colon) == 1)) {
       *colon = '\0';
       //free(up->method);
       up->method = strdup(cp);
       cp = colon+1;
       if(!strcasecmp(up->method, "http"))
 	       up->port = 80;
-    }
-      else {
+    } else {
       // no slash url not null
       //url_free(up);
       //free(up);
+      printf("This is the no slash case: %s\n", up->stuff);
       return(up);
       }
     if(*(slash+1) == '/') {
@@ -85,8 +88,9 @@ url_parse(char *url)
        * and the following string, up to the next slash, colon or the end
        * of the URL, is the host name.
        */
+      // a for loop without body
       for(cp = slash+2; *cp != '\0' && *cp != ':' && *cp != '/'; cp++)
-	;
+	    ;
       c = *cp;
       *cp = '\0';
       //free(up->hostname);
@@ -107,12 +111,16 @@ url_parse(char *url)
       	up->port = atoi(cp1);
       	*cp = c;
       }
-    }
-      else {
+    } else {
       // 1 slash case?
+      // NULL
+      /*
       url_free(up);
-      //free(up);
       return(NULL);
+      */
+      // not NULL
+      printf("This is the 1 slash case: %s\n", up->stuff);
+      return(up);
       }
     if(*cp == '\0')
       up->path = "/";

@@ -198,10 +198,10 @@ http_status(HTTP *http, int *code)
   if(code != NULL)
     *code = http->code;
   int code_len = strlen(http->response);
-  printf("The response code length is: %d\n", code_len);
+  //printf("The response code length is: %d\n", code_len);
   http->response = remove_space(http->response);
   code_len = strlen(http->response);
-  printf("Now the response code length is: %d\n", code_len);
+  //printf("Now the response code length is: %d\n", code_len);
   return(http->response);
 }
 
@@ -256,6 +256,9 @@ http_parse_headers(HTTP *http)
       /*
       printf("The getline result is: %lu\n", l_size);
       printf("The buffer now is: %s\n", ll);
+      */
+      /*
+      printf("The header is :%s\n", ll);
       printf("=====================\n");
       */
       //printf("The len is: %lu\n", sizeof(len));
@@ -274,14 +277,16 @@ http_parse_headers(HTTP *http)
     	node = malloc(sizeof(HDRNODE));
     	node->next = NULL;
       // maybe get rid of the front space in l?
-    	for(cp = l; *cp == ' '; cp++) ;
-    	   l = cp;
-    	for( ; *cp != ':' && *cp != '\0'; cp++) ;
-      	 if(*cp == '\0' || *(cp+1) != ' ') {
-      	    free(line);
-      	    free(node);
-      	    continue;
-      	 }
+    	for(cp = l; *cp == ' '; cp++)
+      ;
+    	l = cp;
+    	for( ; *cp != ':' && *cp != '\0'; cp++)
+      ;
+  	  if(*cp == '\0' || *(cp+1) != ' ') {
+  	     free(line);
+  	     free(node);
+  	     continue;
+  	  }
     	*cp++ = '\0';
     	node->key = strdup(l);
       char *tmp = node->key;
@@ -300,8 +305,6 @@ http_parse_headers(HTTP *http)
             *cp = tolower(*cp);
       }
       */
-      //printf("The node's key is: %s\n", node->key);
-
       if (env != NULL) {
         last->next = node;
         last = node;
@@ -336,11 +339,11 @@ http_free_headers(HEADERS env)
     HEADERS next;
 
     while(env != NULL) {
-	free(env->key);
-	free(env->value);
-	next = env->next;
-	free(env);
-	env = next;
+    	free(env->key);
+    	free(env->value);
+    	next = env->next;
+    	free(env);
+    	env = next;
     }
 }
 
@@ -353,9 +356,11 @@ http_headers_lookup(HTTP *http, char *key)
 {
     HEADERS env = http->headers;
     while(env != NULL) {
-	if(!strcmp(env->key, key))
-	    return(env->value);
-	env = env->next;
+      //printf("%s: ", env->key);
+      //printf("%s\n", env->value);
+    	if(!strcmp(env->key, key))
+    	    return(env->value);
+    	env = env->next;
     }
     return(NULL);
 }
@@ -375,3 +380,28 @@ char *remove_space(char* status) {
 
     return status;
 }
+
+/* search for multiple keywords in response headers */
+/*
+HEADERS search_headers(HEADERS env, char *keywords[]) {
+    HEADERS new_env = NULL;
+    HEADERS tmp = NULL;
+    while (keywords) {
+      tmp = env;
+      while (tmp) {
+        // compare the header node's key with the keyword argument
+        if (!strcasecmp(tmp->key, *keywords)) {
+          if (new_env == NULL) {
+            new_env = tmp;
+          } else {
+            new_env->next = tmp;
+          }
+        }
+        tmp++; // linear search the response header list
+      }
+      keyword++;
+    }
+
+    return new_env;
+}
+*/

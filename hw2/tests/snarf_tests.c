@@ -78,3 +78,20 @@ Test(http_suite, not_found_test) {
 // DO NOT DELETE THESE COMMENTS
 //############################################
 
+/* 1 slash */
+/*
+Test(url_suite, url_1_slash) {
+    URL *url;
+    url = url_parse("http:/www.google.com");
+    cr_assert_neq(url, NULL);
+}
+*/
+
+/* something arbitrary before the 1st slash and after the colon */
+/*
+Test(url_suite, url_invalid_colon_slash) {
+    URL *url;
+    url = url_parse("http:/www.google.com");
+    cr_assert_neq(url, NULL);
+}
+*/

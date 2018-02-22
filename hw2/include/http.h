@@ -60,3 +60,5 @@ char *http_headers_lookup(HTTP *http, char *key);
  * removing the response status end spaces
  */
 char *remove_space(char* status);
+/* search for multiple keywords in response headers */
+// HEADERS search_headers(HEADERS env, char *keywords[]);

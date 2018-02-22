@@ -90,6 +90,14 @@ main(int argc, char *argv[])
 #else
   (void) status;
 #endif
+  // testing the header search
+  char *key, *value;
+  char keyword[15] = "content-type";
+  key = &keyword[0];
+  value = http_headers_lookup(http, key);
+  printf("%s: ", key);
+  printf("%s\n", value);
+  //printf("The 2nd search result is: %s\n", (search_res->next)->value);
   /*
    * At this point, we can retrieve the body of the document,
    * character by character, using http_getc()
