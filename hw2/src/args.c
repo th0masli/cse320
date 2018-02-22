@@ -19,7 +19,7 @@ char *url_to_snarf;
 char *output_file;
 
 void
-parse_args(int argc, char *argv[])
+parse_args(int argc, char *argv[], char *keywords[])
 {
   int i;
   char option;
@@ -37,6 +37,8 @@ parse_args(int argc, char *argv[])
         case 'q': {
           //printf("With args optarg: %s\n", optarg);
           //printf("The q is good\n");
+          *keywords = optarg;
+          keywords++;
           info("Query header: %s", optarg);
           break;
         }
@@ -62,9 +64,9 @@ parse_args(int argc, char *argv[])
         }
       }
     } else if(argv[optind] != NULL) {
-	info("URL to snarf: %s", argv[optind]);
-	url_to_snarf = argv[optind];
-	optind++;
+    	info("URL to snarf: %s", argv[optind]);
+    	url_to_snarf = argv[optind];
+    	optind++;
     }
   }
 }

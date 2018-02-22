@@ -18,6 +18,7 @@
 #include "http.h"
 #include "url.h"
 #include "snarf.h"
+#include <ctype.h>
 
 int
 main(int argc, char *argv[])
@@ -27,13 +28,17 @@ main(int argc, char *argv[])
   IPADDR *addr;
   int port, c, code;
   char *status, *method;
+  //list for recording keywords
+  char *keywords[argc];
 
   /*
   printf("The number of arguments are: %d\n", argc);
   printf("With args: %s\n", argv[2]);
   */
+  //printf("The url get is: %s\n", url_to_snarf);
 
-  parse_args(argc, argv);
+  //parse_args(argc, argv);
+  parse_args(argc, argv, keywords);
   if((up = url_parse(url_to_snarf)) == NULL) {
     fprintf(stderr, "Illegal URL: '%s'\n", argv[1]);
     //fprintf(stderr, "Illegal URL: '%s'\n", url_to_snarf); // that is the right way to print out!
@@ -83,7 +88,7 @@ main(int argc, char *argv[])
    */
   status = http_status(http, &code);
   //status = remove_space(status);
-  printf("The status is: %s\n", status);
+  //printf("The status is: %s\n", status);
   //printf("The code is: %d\n", code);
 #ifdef DEBUG
   debug("%s", status);
@@ -91,12 +96,36 @@ main(int argc, char *argv[])
   (void) status;
 #endif
   // testing the header search
+  /*
   char *key, *value;
   char keyword[15] = "content-type";
   key = &keyword[0];
   value = http_headers_lookup(http, key);
   printf("%s: ", key);
   printf("%s\n", value);
+  */
+  /*for loop for searching the keywords list*/
+  char *key, *value;
+  for (int i = 0; keywords[i] != NULL; i++) {
+    key = keywords[i];
+    // headers is not case sensitive
+    char *key_to_lower = strdup(key);
+    char *tmp = key_to_lower;
+    while (*tmp != '\0') {
+      if (isupper(*tmp))
+        *tmp = tolower(*tmp);
+      tmp++;
+    }
+    value = http_headers_lookup(http, key_to_lower);
+    if (value) {
+      // should print to stderr
+      printf("%s: ", key);
+      printf("%s", value);
+      fprintf(stderr, "%s: ", key);
+      fprintf(stderr, "%s\n", value);
+    }
+  }
+
   //printf("The 2nd search result is: %s\n", (search_res->next)->value);
   /*
    * At this point, we can retrieve the body of the document,

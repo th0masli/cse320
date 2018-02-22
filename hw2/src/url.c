@@ -75,8 +75,8 @@ url_parse(char *url)
      * of the URL before the colon is the access method.
      */
     // colon should right before 1st slash
-    //if(colon < slash) {
-    if((colon < slash) && ((slash-colon) == 1)) {
+    if(colon < slash) {
+    //if((colon < slash) && ((slash-colon) == 1)) {
       *colon = '\0';
       //free(up->method);
       up->method = strdup(cp);

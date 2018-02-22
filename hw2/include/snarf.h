@@ -20,4 +20,5 @@
 extern char *url_to_snarf;
 extern char *output_file;
 
-void parse_args(int argc, char *argv[]);
+//void parse_args(int argc, char *argv[]);
+void parse_args(int argc, char *argv[], char *keywords[]);

@@ -91,7 +91,7 @@ Test(url_suite, url_1_slash) {
 /*
 Test(url_suite, url_invalid_colon_slash) {
     URL *url;
-    url = url_parse("http:/www.google.com");
+    url = url_parse("http:jkhkhkj//www.google.com");
     cr_assert_neq(url, NULL);
 }
 */
