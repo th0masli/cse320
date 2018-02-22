@@ -197,10 +197,10 @@ http_status(HTTP *http, int *code)
     return(NULL);
   if(code != NULL)
     *code = http->code;
-  int code_len = strlen(http->response);
+  //int code_len = strlen(http->response);
   //printf("The response code length is: %d\n", code_len);
   http->response = remove_space(http->response);
-  code_len = strlen(http->response);
+  //code_len = strlen(http->response);
   //printf("Now the response code length is: %d\n", code_len);
   return(http->response);
 }

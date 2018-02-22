@@ -32,22 +32,30 @@ url_parse(char *url)
   URL *up;
   char *cp, c;
   char *slash, *colon;
-
-  //printf("The url is: %s\n", url);
-  //printf("The size of struct URL is: %lu\n", sizeof(*up));
-
+  /*
+  printf("The url is: %s\n", url);
+  printf("The size of struct URL is: %lu\n", sizeof(*up));
+  */
   if((up = malloc(sizeof(*up))) == NULL) {
-    //free(up);
+    free(up);
     return(NULL);
   }
   /*
    * Make a copy of the argument that we can fiddle with
    */
+  /*
   if((up->stuff = strdup(url)) == NULL) {
     //free(up->stuff);
-    //free(up);
+    free(up);
+    return(NULL);
+  }*/
+  if(url == NULL) {
+    //printf("There is no url input\n");
+    free(up);
     return(NULL);
   }
+  // null cannot be duplicated
+  up->stuff = strdup(url);
   /* initialize the up */
   up->method = NULL;
   up->hostname = NULL;
