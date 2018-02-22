@@ -358,8 +358,10 @@ http_headers_lookup(HTTP *http, char *key)
     while(env != NULL) {
       //printf("%s: ", env->key);
       //printf("%s\n", env->value);
-    	if(!strcmp(env->key, key))
-    	    return(env->value);
+    	if(!strcmp(env->key, key)) {
+        env->value = remove_space(env->value);
+        return(env->value);
+      }
     	env = env->next;
     }
     return(NULL);

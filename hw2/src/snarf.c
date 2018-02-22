@@ -87,7 +87,6 @@ main(int argc, char *argv[])
    *	text/plain	The body of the document is plain ASCII text
    */
   status = http_status(http, &code);
-  //status = remove_space(status);
   //printf("The status is: %s\n", status);
   //printf("The code is: %d\n", code);
 #ifdef DEBUG
@@ -95,15 +94,6 @@ main(int argc, char *argv[])
 #else
   (void) status;
 #endif
-  // testing the header search
-  /*
-  char *key, *value;
-  char keyword[15] = "content-type";
-  key = &keyword[0];
-  value = http_headers_lookup(http, key);
-  printf("%s: ", key);
-  printf("%s\n", value);
-  */
   /*for loop for searching the keywords list*/
   char *key, *value;
   for (int i = 0; keywords[i] != NULL; i++) {
@@ -119,8 +109,10 @@ main(int argc, char *argv[])
     value = http_headers_lookup(http, key_to_lower);
     if (value) {
       // should print to stderr
+      /*
       printf("%s: ", key);
       printf("%s", value);
+      */
       fprintf(stderr, "%s: ", key);
       fprintf(stderr, "%s\n", value);
     }
