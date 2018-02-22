@@ -49,13 +49,17 @@ http_open(IPADDR *addr, int port)
   struct sockaddr_in sa;
   int sock;
 
-  if(addr == NULL)
+  if(addr == NULL) {
+    //printf("The address is NULL.\n");
     return(NULL);
+  }
   if((http = malloc(sizeof(*http))) == NULL) {
+    //printf("Malloc for http is NULL.\n");
     return(NULL);
   }
   bzero(http, sizeof(*http));
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    //printf("The socket is below 0.\n");
     free(http);
     return(NULL);
   }
@@ -65,6 +69,7 @@ http_open(IPADDR *addr, int port)
   bcopy(addr, &sa.sin_addr.s_addr, sizeof(struct in_addr));
   if(connect(sock, (struct sockaddr *)(&sa), sizeof(sa)) < 0
      || (http->file = fdopen(sock, "w+")) == NULL) {
+    //printf("Connection failed.\n");
     free(http);
     close(sock);
     return(NULL);
@@ -192,6 +197,11 @@ http_status(HTTP *http, int *code)
     return(NULL);
   if(code != NULL)
     *code = http->code;
+  int code_len = strlen(http->response);
+  printf("The response code length is: %d\n", code_len);
+  http->response = remove_space(http->response);
+  code_len = strlen(http->response);
+  printf("Now the response code length is: %d\n", code_len);
   return(http->response);
 }
 
@@ -243,9 +253,11 @@ http_parse_headers(HTTP *http)
         //printf("It's over!\n");
         break;
       }
+      /*
       printf("The getline result is: %lu\n", l_size);
       printf("The buffer now is: %s\n", ll);
       printf("=====================\n");
+      */
       //printf("The len is: %lu\n", sizeof(len));
       line = l = malloc(len+1);
     	l[len] = '\0';
@@ -346,4 +358,20 @@ http_headers_lookup(HTTP *http, char *key)
 	env = env->next;
     }
     return(NULL);
+}
+
+/*
+ * removing the response status end spaces
+ */
+char *remove_space(char* status) {
+    char *tmp = status;
+    while (*tmp != '\0')
+      tmp++;
+    while (*(tmp-1) == ' ' || *(tmp-1) == '\n' || *(tmp-1) == '\r') {
+      tmp--;
+    }
+
+    *tmp = '\0';
+
+    return status;
 }

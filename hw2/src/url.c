@@ -51,6 +51,7 @@ url_parse(char *url)
   /* initialize the up */
   up->method = NULL;
   up->hostname = NULL;
+  up->port = 0;
   up->dnsdone = 0;
   bzero(&up->addr, sizeof(struct in_addr));
   /*
@@ -64,18 +65,20 @@ url_parse(char *url)
      * If a colon occurs before any slashes, then we assume the portion
      * of the URL before the colon is the access method.
      */
-    if((colon < slash) && ((slash-colon) == 1)) {
+    if(colon < slash) {
       *colon = '\0';
       //free(up->method);
       up->method = strdup(cp);
       cp = colon+1;
       if(!strcasecmp(up->method, "http"))
 	       up->port = 80;
-    } else {
-      /* slash must be right following colon */
-      url_free(up);
-      return(NULL);
     }
+      else {
+      // no slash url not null
+      //url_free(up);
+      //free(up);
+      return(up);
+      }
     if(*(slash+1) == '/') {
       /*
        * If there are two slashes, then we have a full, absolute URL,
@@ -84,11 +87,12 @@ url_parse(char *url)
        */
       for(cp = slash+2; *cp != '\0' && *cp != ':' && *cp != '/'; cp++)
 	;
-      //for(cp = slash+2; *cp != '\0' && *cp != ':' && *cp != '/'; cp++)
       c = *cp;
       *cp = '\0';
       //free(up->hostname);
-      up->hostname = slash+2;
+      //up->hostname = slash+2; // need to duplicate
+      up->hostname = strdup(slash+2);
+      //printf("The host name is: %s\n", up->hostname);
       *cp = c;
       /*
        * If we found a ':', then we have to collect the port number
@@ -103,11 +107,13 @@ url_parse(char *url)
       	up->port = atoi(cp1);
       	*cp = c;
       }
-    } else {
-      /*must be 2 slashes*/
-      url_free(up);
-      return(NULL);
     }
+      else {
+      // 1 slash case?
+      url_free(up);
+      //free(up);
+      return(NULL);
+      }
     if(*cp == '\0')
       up->path = "/";
     else
@@ -115,12 +121,15 @@ url_parse(char *url)
   } else {
     /*
      * No colon: a relative URL with no method or hostname
+     * no method
      */
     up->path = cp;
-    url_free(up);
-    return(NULL);
+    //url_free(up);
+    //free(up);
+    return(up);
   }
 
+  //printf("The host name after operating is: %s\n", up->hostname);
   return(up);
 }
 
@@ -131,10 +140,10 @@ url_parse(char *url)
 void
 url_free(URL *up)
 {
-  //free(up->stuff);
-  if(up->stuff != NULL) free(up->stuff);
+  free(up->stuff);
+  //if(up->stuff != NULL) free(up->stuff);
   if(up->method != NULL) free(up->method);
-  //if(up->hostname != NULL) free(up->hostname);
+  if(up->hostname != NULL) free(up->hostname);
   free(up);
 }
 
@@ -191,8 +200,11 @@ url_address(URL *up)
 
   if(!up->dnsdone) {
     if(up->hostname != NULL && *up->hostname != '\0') {
-      if((he = gethostbyname(up->hostname)) == NULL)
-	return(NULL);
+      //printf("The host name is: %s\n", up->hostname);
+      if((he = gethostbyname(up->hostname)) == NULL) {
+        //printf("The host name is NULL.\n");
+        return(NULL);
+      }
       bcopy(he->h_addr, &up->addr, sizeof(struct in_addr));
     }
     up->dnsdone = 1;

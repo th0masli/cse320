@@ -82,6 +82,9 @@ main(int argc, char *argv[])
    *	text/plain	The body of the document is plain ASCII text
    */
   status = http_status(http, &code);
+  //status = remove_space(status);
+  printf("The status is: %s\n", status);
+  //printf("The code is: %d\n", code);
 #ifdef DEBUG
   debug("%s", status);
 #else

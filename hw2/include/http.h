@@ -57,22 +57,6 @@ char *http_status(HTTP *http, int *code);
 char *http_headers_lookup(HTTP *http, char *key);
 
 /*
-typedef struct HDRNODE {
-    char *key;
-    char *value;
-    struct HDRNODE *next;
-} HDRNODE;
-typedef struct HDRNODE *HEADERS;
-void http_free_headers(HEADERS env);
-
-typedef enum { ST_REQ, ST_HDRS, ST_BODY, ST_DONE } HTTP_STATE;
-
-struct http {
-  FILE *file;           // Stream to remote server
-  HTTP_STATE state;     // State of the connection
-  int code;             // Response code
-  char version[4];      // HTTP version from the response
-  char *response;       // Response string with message
-  HEADERS headers;      // Reply headers
-};
-*/
+ * removing the response status end spaces
+ */
+char *remove_space(char* status);
