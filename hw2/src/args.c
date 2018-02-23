@@ -40,6 +40,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
             if (!strcasecmp(optarg, "-o")) {
             //free(keywords);
             free(origin_keywords);
+            USAGE(argv[0]);
             exit(-1);
             }
             //printf("The header is: %s\n", optarg);
@@ -51,6 +52,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
             /* URL come before flags */
             //free(keywords);
             free(origin_keywords);
+            USAGE(argv[0]);
             exit(-1);
           }
         }
@@ -60,6 +62,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
             if (!strcasecmp(optarg, "-q")) {
             //free(keywords);
             free(origin_keywords);
+            USAGE(argv[0]);
             exit(-1);
           }
             info("Output file: %s", optarg);
@@ -68,6 +71,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
             } else {
               //free(keywords);
               free(origin_keywords);
+              USAGE(argv[0]);
               exit(-1);
             }
             break;
@@ -75,6 +79,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
             /* URL come before flags */
             //free(keywords);
             free(origin_keywords);
+            USAGE(argv[0]);
             exit(-1);
           }
         }
@@ -105,6 +110,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
       } else {
         //free(keywords);
         free(origin_keywords);
+        USAGE(argv[0]);
         exit(-1);
       }
       //printf("The url is: %s\n", url_to_snarf);
