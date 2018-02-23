@@ -44,7 +44,8 @@ main(int argc, char *argv[])
   if((up = url_parse(url_to_snarf)) == NULL) {
     fprintf(stderr, "Illegal URL: '%s'\n", argv[1]);
     //fprintf(stderr, "Illegal URL: '%s'\n", url_to_snarf); // that is the right way to print out!
-    exit(1);
+    //exit(1); // should exit with -1 when any error occurs
+    exit(-1);
   }
   method = url_method(up);
   addr = url_address(up);
@@ -52,13 +53,15 @@ main(int argc, char *argv[])
   if(method == NULL || strcasecmp(method, "http")) {
     fprintf(stderr, "Only HTTP access method is supported\n");
     url_free(up); // added free url
-    exit(1); // should exit with -1 when any error occurs
+    //exit(1); // should exit with -1 when any error occurs
+    exit(-1);
   }
   if((http = http_open(addr, port)) == NULL) {
     fprintf(stderr, "Unable to contact host '%s', port %d\n",
 	    url_hostname(up) != NULL ? url_hostname(up) : "(NULL)", port);
     url_free(up); // added free url
-    exit(1);
+    //exit(1);
+    exit(-1);
   }
   http_request(http, up);
   /*
@@ -128,12 +131,26 @@ main(int argc, char *argv[])
     putchar(c);
   */
   if (output_file != NULL){
-    file_path = fopen(output_file, "w");
-    while((c = http_getc(http)) != EOF) {
-        fputc(c, file_path);
+    if ((file_path = fopen(output_file, "w+")) == NULL) {
+        http_close(http);
+        url_free(up);
+        exit(-1);
     }
+    //file_path = fopen(output_file, "w+");
+    while((c = http_getc(http)) != EOF) {
+        int write_res = fputc(c, file_path);
+        if (write_res == EOF) {
+          http_close(http);
+          url_free(up);
+          exit(-1);
+        }
+    }
+    fclose(file_path);
+  } else {
+    /* if no path specified print it to stdout */
+    while((c = http_getc(http)) != EOF)
+      putchar(c);
   }
-
   http_close(http);
   url_free(up);
   /*exit status*/

@@ -37,6 +37,8 @@ parse_args(int argc, char *argv[], char *keywords[])
         case 'q': {
           //printf("With args optarg: %s\n", optarg);
           //printf("The q is good\n");
+          if (!strcasecmp(optarg, "-o"))
+            exit(-1);
           *keywords = optarg;
           keywords++;
           info("Query header: %s", optarg);
@@ -54,7 +56,8 @@ parse_args(int argc, char *argv[], char *keywords[])
             //printf("The opterr is: %d\n", opterr);
             fprintf(stderr, KRED "-%c is not a supported argument\n" KNRM,
                     optopt);
-            //exit(-1); // exit status should be -1
+            USAGE(argv[0]);
+            exit(-1); // exit status should be -1
           }
           USAGE(argv[0]);
           exit(0);
