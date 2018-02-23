@@ -35,7 +35,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
       //printf("The opterr is: %d\n", opterr);
       switch (option) {
         case 'q': {
-          printf("The q is good\n");
+          //printf("The q is good\n");
           if (url_to_snarf == NULL) {
             if (!strcasecmp(optarg, "-o")) {
             //free(keywords);
@@ -55,7 +55,7 @@ parse_args(int argc, char *argv[], char *origin_keywords[])
           }
         }
         case 'o': {
-          printf("The o is good\n");
+          //printf("The o is good\n");
           if (url_to_snarf == NULL) {
             if (!strcasecmp(optarg, "-q")) {
             //free(keywords);

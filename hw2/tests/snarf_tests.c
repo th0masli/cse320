@@ -79,19 +79,20 @@ Test(http_suite, not_found_test) {
 //############################################
 
 /* 1 slash */
-/*
 Test(url_suite, url_1_slash) {
     URL *url;
     url = url_parse("http:/www.google.com");
     cr_assert_neq(url, NULL);
 }
-*/
 
 /* something arbitrary before the 1st slash and after the colon */
-/*
 Test(url_suite, url_invalid_colon_slash) {
     URL *url;
-    url = url_parse("http:jkhkhkj//www.google.com");
+    char *str = "http:zxcasdw//www.google.com";
+    url = url_parse(str);
     cr_assert_neq(url, NULL);
+    cr_assert_eq(url_port(url), 80);
+    cr_assert_str_eq(url_method(url), "http");
+    cr_assert_str_eq(url_hostname(url), "www.google.com");
+    cr_assert_str_eq(url_path(url), "/");
 }
-*/

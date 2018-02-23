@@ -87,7 +87,7 @@ url_parse(char *url)
       // no slash url not null
       //url_free(up);
       //free(up);
-      printf("This is the no slash case: %s\n", up->stuff);
+      //printf("This is the no slash case: %s\n", up->stuff);
       return(up);
       }
     if(*(slash+1) == '/') {
@@ -127,7 +127,7 @@ url_parse(char *url)
       return(NULL);
       */
       // not NULL
-      printf("This is the 1 slash case: %s\n", up->stuff);
+      //printf("This is the 1 slash case: %s\n", up->stuff);
       return(up);
       }
     if(*cp == '\0')
