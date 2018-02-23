@@ -35,10 +35,11 @@ parse_args(int argc, char *argv[], char *keywords[])
       //printf("The opterr is: %d\n", opterr);
       switch (option) {
         case 'q': {
-          //printf("With args optarg: %s\n", optarg);
           //printf("The q is good\n");
-          if (!strcasecmp(optarg, "-o"))
+          if (!strcasecmp(optarg, "-o")) {
+            free(keywords);
             exit(-1);
+          }
           *keywords = optarg;
           keywords++;
           info("Query header: %s", optarg);
@@ -46,14 +47,17 @@ parse_args(int argc, char *argv[], char *keywords[])
         }
         case 'o': {
           //printf("The o is good\n");
-          if (!strcasecmp(optarg, "-q"))
+          if (!strcasecmp(optarg, "-q")) {
+            free(keywords);
             exit(-1);
+          }
           info("Output file: %s", optarg);
 	        output_file = optarg;
           break;
         }
         case '?': {
           //printf("The flag char is: %c\n", optopt);
+          free(keywords);
           if (optopt != 'h') {
             //printf("The opterr is: %d\n", opterr);
             fprintf(stderr, KRED "-%c is not a supported argument\n" KNRM,

@@ -29,7 +29,9 @@ main(int argc, char *argv[])
   int port, c, code;
   char *status, *method;
   //list for recording keywords
-  char *keywords[argc];
+  //char *keywords[argc];
+  //char **keywords = malloc(argc*argc);
+  char **keywords = calloc(argc, 8);
   //output file
   FILE *file_path;
 
@@ -113,15 +115,12 @@ main(int argc, char *argv[])
     }
     value = http_headers_lookup(http, key_to_lower);
     if (value) {
-      // should print to stderr
-      /*
-      printf("%s: ", key);
-      printf("%s", value);
-      */
       fprintf(stderr, "%s: ", key);
       fprintf(stderr, "%s\n", value);
     }
+    free(key_to_lower);
   }
+  free(keywords);
   /*
    * At this point, we can retrieve the body of the document,
    * character by character, using http_getc()
