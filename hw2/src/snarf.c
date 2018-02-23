@@ -30,6 +30,8 @@ main(int argc, char *argv[])
   char *status, *method;
   //list for recording keywords
   char *keywords[argc];
+  //output file
+  FILE *file_path;
 
   /*
   printf("The number of arguments are: %d\n", argc);
@@ -50,7 +52,7 @@ main(int argc, char *argv[])
   if(method == NULL || strcasecmp(method, "http")) {
     fprintf(stderr, "Only HTTP access method is supported\n");
     url_free(up); // added free url
-    exit(1);
+    exit(1); // should exit with -1 when any error occurs
   }
   if((http = http_open(addr, port)) == NULL) {
     fprintf(stderr, "Unable to contact host '%s', port %d\n",
@@ -117,17 +119,29 @@ main(int argc, char *argv[])
       fprintf(stderr, "%s\n", value);
     }
   }
-
-  //printf("The 2nd search result is: %s\n", (search_res->next)->value);
   /*
    * At this point, we can retrieve the body of the document,
    * character by character, using http_getc()
    */
+  /*
   while((c = http_getc(http)) != EOF)
     putchar(c);
-  //need to free http->headers
-  //http_free_headers(http->headers);
+  */
+  if (output_file != NULL){
+    file_path = fopen(output_file, "w");
+    while((c = http_getc(http)) != EOF) {
+        fputc(c, file_path);
+    }
+  }
+
   http_close(http);
   url_free(up);
+  /*exit status*/
+  /* if code not 200 just return the http code */
+  if (code != 200) {
+    //printf("The returned code is: %d\n", code);
+    return code;
+  }
+  /* http 200 and no other error return 0 */
   return(0);
 }
