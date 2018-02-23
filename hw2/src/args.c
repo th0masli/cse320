@@ -46,6 +46,8 @@ parse_args(int argc, char *argv[], char *keywords[])
         }
         case 'o': {
           //printf("The o is good\n");
+          if (!strcasecmp(optarg, "-q"))
+            exit(-1);
           info("Output file: %s", optarg);
 	        output_file = optarg;
           break;
