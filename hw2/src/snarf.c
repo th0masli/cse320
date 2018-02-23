@@ -46,6 +46,7 @@ main(int argc, char *argv[])
   if((up = url_parse(url_to_snarf)) == NULL) {
     fprintf(stderr, "Illegal URL: '%s'\n", argv[1]);
     //fprintf(stderr, "Illegal URL: '%s'\n", url_to_snarf); // that is the right way to print out!
+    free(keywords);
     //exit(1); // should exit with -1 when any error occurs
     exit(-1);
   }
@@ -55,6 +56,7 @@ main(int argc, char *argv[])
   if(method == NULL || strcasecmp(method, "http")) {
     fprintf(stderr, "Only HTTP access method is supported\n");
     url_free(up); // added free url
+    free(keywords);
     //exit(1); // should exit with -1 when any error occurs
     exit(-1);
   }
@@ -62,6 +64,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "Unable to contact host '%s', port %d\n",
 	    url_hostname(up) != NULL ? url_hostname(up) : "(NULL)", port);
     url_free(up); // added free url
+    free(keywords);
     //exit(1);
     exit(-1);
   }
@@ -115,6 +118,7 @@ main(int argc, char *argv[])
     }
     value = http_headers_lookup(http, key_to_lower);
     if (value) {
+      //value = remove_space(value);
       fprintf(stderr, "%s: ", key);
       fprintf(stderr, "%s\n", value);
     }

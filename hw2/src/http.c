@@ -372,12 +372,17 @@ http_headers_lookup(HTTP *http, char *key)
  */
 char *remove_space(char* status) {
     char *tmp = status;
+    /*
     while (*tmp != '\0')
       tmp++;
     while (*(tmp-1) == ' ' || *(tmp-1) == '\n' || *(tmp-1) == '\r') {
       tmp--;
     }
 
+    *tmp = '\0';
+    */
+    while (*tmp != '\r')
+      tmp++;
     *tmp = '\0';
 
     return status;
