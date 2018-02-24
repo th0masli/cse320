@@ -31,14 +31,10 @@ main(int argc, char *argv[])
   //list for recording keywords
   //char *keywords[argc];
   //char **keywords = malloc(argc*argc);
-  char **keywords = calloc(argc, 8);
-  //output file
+  //char **keywords = calloc(argc, 8);
+  char **keywords = calloc(argc, sizeof(char *));
   FILE *file_path;
 
-  /*
-  printf("The number of arguments are: %d\n", argc);
-  printf("With args: %s\n", argv[2]);
-  */
   //printf("The url get is: %s\n", url_to_snarf);
 
   //parse_args(argc, argv);
