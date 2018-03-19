@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 image: gcc:5.4.0
 variables:
     GIT_SSL_NO_VERIFY: "true"
@@ -20,7 +21,31 @@ test:
     stage: test
     script:
         - ${HW_DIR}/bin/${EXEC}_tests -S --verbose=0 --timeout 5
+=======
+image: hwrunner:latest
+variables:
+    GIT_SSL_NO_VERIFY: "true"
+    EXEC: budmm
+    HW_DIR: hw3
+before_script:
+    - make clean all -C ${HW_DIR}
+stages:
+    - build
+    - run
+    - test
+build:
+    stage: build
+    script:
+        - echo "Build done"
+>>>>>>> HW3_CODE/master
 run:
     stage: run
     script:
         - ${HW_DIR}/bin/${EXEC} -h
+<<<<<<< HEAD
+=======
+test:
+    stage: test
+    script:
+        - ${HW_DIR}/bin/${EXEC}_tests -S --verbose=0 --timeout 5
+>>>>>>> HW3_CODE/master
