@@ -4,6 +4,16 @@
 #include "budmm.h"
 
 int main(int argc, char const *argv[]) {
+    /*
+    //test functions
+    bud_mem_init(); //init the free list and heap for buddy allocator
+    char *h_start = bud_heap_start();
+    char *h_end = bud_heap_end();
+    printf("The heap starts at the address: %p\n", h_start);
+    printf("The heap ends at the address: %p\n", h_end);
+    */
+
+
     int i;
 
     bud_mem_init();
