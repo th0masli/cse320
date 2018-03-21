@@ -4,15 +4,13 @@
 #include "budmm.h"
 
 int main(int argc, char const *argv[]) {
-    /*
-    //test functions
+    /*test functions
     bud_mem_init(); //init the free list and heap for buddy allocator
     char *h_start = bud_heap_start();
     char *h_end = bud_heap_end();
     printf("The heap starts at the address: %p\n", h_start);
     printf("The heap ends at the address: %p\n", h_end);
     */
-
 
     int i;
 
@@ -35,7 +33,7 @@ int main(int argc, char const *argv[]) {
 
     void* ptr3 = bud_malloc(3000); // 4192
     printf("ptr3: %p\n", ptr3);
-
+    /*original
     bud_free(ptr1);
 
     ptr2 = bud_realloc(ptr2, 124); // 128
@@ -50,4 +48,5 @@ int main(int argc, char const *argv[]) {
     bud_mem_fini();
 
     return EXIT_SUCCESS;
+    */
 }
