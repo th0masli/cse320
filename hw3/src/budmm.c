@@ -21,6 +21,13 @@ void insert_free_list(bud_free_block *free_block);
 bud_header *free_to_allocated(bud_free_block *free_block, uint64_t t_order, uint32_t tsize, uint32_t rsize);
 /* verify if it is a valid pointer to free */
 int valid_bud_ptr(void *ptr);
+/* mark the block as free */
+void mark_free(bud_header *freed_block);
+/* coalescing block and recursively removing buddy from the free_list_heads */
+bud_free_block *coalesce_block(bud_header *freed_block);
+/* remove free buddy's header from free_list_heads */
+void remove_hearder(bud_free_block *free_buddy);
+
 
 /*
  * You should store the heads of your free lists in these variables.
@@ -65,7 +72,7 @@ void *bud_malloc(uint32_t rsize) {
         ((bud_header*) best_block)->padded = 0;
       ((bud_header*) best_block)->rsize = rsize;
       */
-
+      printf("The allocated block's order is: %llu\n", best_block_header->order);
       return (best_block_header + 1);
     }
     //if no valid free block in the free list call bud_sbrk
@@ -96,7 +103,9 @@ void *bud_malloc(uint32_t rsize) {
         best_block = split_block(new_block, t_order);
         //printf("The best free block's address is: %p\n", best_block);
         bud_header *best_block_header = free_to_allocated(best_block, t_order, tsize, rsize);
-
+        printf("The allocated block's order is: %llu\n", best_block_header->order);
+        printf("The address allocated is: %p\n", (best_block_header + 1));
+        printf("The allocated address header is: %p\n", best_block_header);
         return (best_block_header + 1);
       }
     }
@@ -111,13 +120,19 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
 void bud_free(void *ptr) {
     //verify the ptr belongs to an allocated block
     //if it is a valid pointer
-    if (!valid_bud_ptr(ptr)) {
-      //add the ptr header to the free_list_heads
-
-      //coelescing its buddy recursively and remove buddy's header from the free_list_heads
-
+    int verifi_res = valid_bud_ptr(ptr);
+    printf("The verification result is: %d\n", verifi_res);
+    if (!verifi_res) {
+      bud_header *ptr_header = ptr - 1; // get the header of the pointer
+      //mark as free
+      mark_free(ptr_header);
+      //coalescing its buddy recursively and remove buddy's header from the free_list_heads
+      bud_free_block *free_block = coalesce_block(ptr_header);
+      //add the newly freed block to the free_list_heads
+      insert_free_list(free_block);
     } else {
       //call abort
+      printf("Calling abort\n");
       abort();
     }
 
@@ -216,30 +231,46 @@ bud_header *free_to_allocated(bud_free_block *best_block, uint64_t t_order, uint
     return ((bud_header*) best_block);
 }
 
+
 /*
 The following functions for bud_free
 */
 
 /* verify if it is a valid pointer to free */
 int valid_bud_ptr(void *ptr) {
+    printf("The pointer gonna be verified is: %p\n", ptr);
+    printf("The pointer's header is: %p\n", (ptr-1));
     uint64_t int_ptr = (uint64_t) ptr; // cast to int for easier comparing
     bud_header *ptr_header = ptr - 1; // the address of the pointer's header
     //case 0: prt must be in range(bud_heap_start, bud_heap_end)
     uint64_t heap_lower_bound = (uint64_t) bud_heap_start();
     uint64_t heap_upper_bound = (uint64_t) bud_heap_end();
-    if (int_ptr < heap_lower_bound || int_ptr > heap_upper_bound)
-      return 1;
+    /*
+    for lower bound we need a block for header
+    for the uppoer bound, the bud_heap_end() will return the 1st address that beyong the current heap
+    */
+    if (int_ptr <= heap_lower_bound || int_ptr >= heap_upper_bound) {
+        printf("case 0\n");
+        return 1;
+    }
     //case 1: ptr must align to a multiple of 8; sizeof(bud_header)?
     uint64_t align_factor = sizeof(bud_header);
-    if ((int_ptr%align_factor) != 0)
-      return 1;
+    if ((int_ptr%align_factor) != 0) {
+          printf("case 1\n");
+        return 1;
+    }
     //case 2: order must in range(ORDER_MIN, ORDER_MAX)
     uint64_t ptr_order = ptr_header->order;
-    if (ptr_order < ORDER_MIN || ptr_order > ORDER_MAX)
-      return 1;
+    if (ptr_order < ORDER_MIN || ptr_order > ORDER_MAX) {
+        printf("case 2\n");
+        printf("The pointer's order is: %llu\n", ptr_order);
+        return 1;
+    }
     //case 3: header.allocated is 1
-    if (ptr_header->allocated != 1)
-      return 1;
+    if (ptr_header->allocated != 1) {
+        printf("case 3\n");
+        return 1;
+    }
     //case 4: padded consistency
     /*
     The padded bit in the header is 0, but requested_size + sizeof(bud_header) != (block size)
@@ -247,17 +278,86 @@ int valid_bud_ptr(void *ptr) {
     */
     uint64_t total_size = ptr_header->rsize + sizeof(bud_header);
     uint64_t block_size = ORDER_TO_BLOCK_SIZE(ptr_header->order);
-    if (ptr_header->padded == 0 && total_size != block_size)
-      return 1;
-    if (ptr_header->padded == 1 && total_size == block_size)
-      return 1;
+    if (ptr_header->padded == 0 && total_size != block_size) {
+        printf("case 4\n");
+        return 1;
+    }
+    if (ptr_header->padded == 1 && total_size == block_size) {
+        printf("case 4\n");
+        return 1;
+    }
     //case 5: requested size is consistent with the order
     uint64_t consistent_order = get_order(ptr_header->rsize);
-    if (consistent_order != ptr_order)
-      return 1;
+    if (consistent_order != ptr_order) {
+        printf("case 5\n");
+        return 1;
+    }
 
     //if all conditions a satisfied then return true
     return 0;
 }
 
-/* coelescing block */
+/* mark the block as free */
+void mark_free(bud_header *freed_block) {
+    freed_block->allocated = 0;
+    freed_block->padded = 0;
+    freed_block->rsize = 0;
+}
+
+/* coalescing block and recursively removing buddy from the free_list_heads */
+/* just for buddies A^S = B
+   sizes have to be same
+*/
+bud_free_block *coalesce_block(bud_header *freed_block) {
+    //find the buddy for the just freed block
+    //check if it is the left or right buddy
+    bud_header *buddy;
+    bud_free_block *free_buddy;
+    uint64_t buddy_address;
+    uint64_t freed_block_order = freed_block->order;
+    uint64_t block_size = ORDER_TO_BLOCK_SIZE(freed_block_order);
+    uint64_t freed_block_address = (uint64_t) freed_block;
+    buddy_address = freed_block_address^block_size;
+    buddy = (bud_header*) buddy_address;
+    //base case the freed block's buddy is not free
+    //or the buddy & the block have different size
+    if ((buddy->allocated == 1) || (buddy->order != freed_block->order)) {
+      return ((bud_free_block*) freed_block);
+    }
+    //if the buddy is free and has the same size as the free block
+    //cast the buddy header to bud_free_block
+    free_buddy = (bud_free_block*) buddy; //it shoul be in the free_list_heads
+    //for left buddy
+    if (buddy < freed_block) {
+      //remove the left buddy from the free_list_heads
+      /* original way
+      free_buddy->prev->next = free_buddy->next;
+      free_buddy->next->prev = free_buddy->prev;
+      free_buddy->next = NULL;
+      free_buddy->prev = NULL;
+      */
+      remove_hearder(free_buddy);
+      //change the order of left buddy
+      buddy->order += 1;
+      //recursive call
+      return coalesce_block(buddy);
+    }
+    //for right buddy
+    //else if (buddy > freed_block) {
+    else {
+      //remove the right buddy from the free_list_heads
+      remove_hearder(free_buddy);
+      //change the order of freed_block
+      freed_block->order += 1;
+      //recursive call
+      return coalesce_block(freed_block);
+    }
+}
+
+/* remove free buddy's header from free_list_heads */
+void remove_hearder(bud_free_block *free_buddy) {
+    free_buddy->prev->next = free_buddy->next;
+    free_buddy->next->prev = free_buddy->prev;
+    free_buddy->next = NULL;
+    free_buddy->prev = NULL;
+}

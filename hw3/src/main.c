@@ -33,9 +33,9 @@ int main(int argc, char const *argv[]) {
 
     void* ptr3 = bud_malloc(3000); // 4192
     printf("ptr3: %p\n", ptr3);
-    /*original
-    bud_free(ptr1);
 
+    bud_free(ptr1);
+    /*original
     ptr2 = bud_realloc(ptr2, 124); // 128
 
     ptr1 = bud_malloc(200); // 256

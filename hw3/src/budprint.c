@@ -48,6 +48,7 @@ static void bk_print_free(bud_free_block *hdr) {
     //original printf
     fprintf(stderr, "|%31sNEXT: 0x%016lx%32s|\n", "", next, "");
     fprintf(stderr, "|%31sPREV: 0x%016lx%32s|\n", "", prev, "");
+    //
     /*modified for macOS
     fprintf(stderr, "|%31sNEXT: 0x%016llx%32s|\n", "", next, "");
     fprintf(stderr, "|%31sPREV: 0x%016llx%32s|\n", "", prev, "");
