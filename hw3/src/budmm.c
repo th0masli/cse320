@@ -85,7 +85,7 @@ void *bud_malloc(uint32_t rsize) {
         //put the old break point address into the bud_free_block and set the next and prev to NULL
         bud_free_block *new_block = (bud_free_block*) increment_req;
         (new_block->header).order = ORDER_MAX-1;
-        //printf("The new block's info about allocated is: %u\n", ((new_block->header).allocated));
+        //printf("The new block's allocated is init to: %u\n", ((new_block->header).allocated));
         //printf("The new block's padded is init to: %u\n", ((new_block->header).padded = 0));
         /*the following are all Initialize correctlly
         (new_block->header).allocated = 0;
