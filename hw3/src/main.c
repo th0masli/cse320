@@ -4,14 +4,6 @@
 #include "budmm.h"
 
 int main(int argc, char const *argv[]) {
-    /*test functions
-    bud_mem_init(); //init the free list and heap for buddy allocator
-    char *h_start = bud_heap_start();
-    char *h_end = bud_heap_end();
-    printf("The heap starts at the address: %p\n", h_start);
-    printf("The heap ends at the address: %p\n", h_end);
-    */
-
     int i;
 
     bud_mem_init();
@@ -26,16 +18,16 @@ int main(int argc, char const *argv[]) {
     ptr1[5] = 'f';
     ptr1[6] = '\0';
     printf("ptr1 string: %s\n", ptr1);
-    /*
+
     int* ptr2 = bud_malloc(sizeof(int) * 100); // 512
     for(i = 0; i < 100; i++)
         ptr2[i] = i;
 
     void* ptr3 = bud_malloc(3000); // 4192
     printf("ptr3: %p\n", ptr3);
-    */
+
     bud_free(ptr1);
-    /*original
+
     ptr2 = bud_realloc(ptr2, 124); // 128
 
     ptr1 = bud_malloc(200); // 256
@@ -44,7 +36,7 @@ int main(int argc, char const *argv[]) {
     // intentional error (errno = EINVAL)
     ptr3 = bud_malloc(20000);
     printf("errno: %d (%s)\n", errno, strerror(errno));
-    */
+    
     bud_mem_fini();
 
     return EXIT_SUCCESS;

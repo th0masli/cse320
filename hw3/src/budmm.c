@@ -53,7 +53,7 @@ void *bud_malloc(uint32_t rsize) {
     printf("The total size is: %u\n", tsize);
     //find the suitable free block
     uint64_t t_order = get_order(tsize); //get the best enough order
-    printf("The order needed is: %lu\n", t_order);
+    //printf("The order needed is: %lu\n", t_order);
     bud_free_block *fblock = find_free(t_order);
     //if there is a valid free block then allocate it to user
     if (fblock != NULL) {
@@ -115,6 +115,45 @@ void *bud_malloc(uint32_t rsize) {
 }
 
 void *bud_realloc(void *ptr, uint32_t rsize) {
+    //verify if the pointer and requested size passed in is valid
+    if (rsize > (MAX_BLOCK_SIZE-sizeof(bud_header))) {
+      errno = EINVAL;
+      return NULL;
+    }
+    if (valid_bud_ptr(ptr)) {
+      printf("Calling abort\n");
+      abort();
+    }
+    if (rsize == 0) {
+      bud_free(ptr);
+      return NULL;
+    }
+    if (ptr == NULL)
+      return bud_malloc(rsize);
+    //calculate the new total size; dealing with 3 cases
+    uint32_t total_size = rsize + sizeof(bud_header);
+    uint64_t req_order = get_order(total_size);// get the best enough order
+    bud_header *ptr_header = (bud_header*) ptr - 1; // the address of the pointer's header
+    uint64_t ptr_order = ptr_header->order;
+    //case 0: the new total size is the same as the current block size
+    if (req_order == ptr_order) {
+      return ptr;
+    }
+    //case 1: the new total size is bigger than the current block size
+    if (req_order > ptr_order) {
+      void *new_ptr = bud_malloc(rsize); //allocate new enough space
+      //copy the old data to the new block
+      uint64_t old_size = ptr_header->rsize;
+      memcpy(new_ptr, ptr, old_size);
+      bud_free(ptr); // free the old block
+      return new_ptr;
+    }
+    //case 2: the new total size is smaller than the current block size
+    if (req_order < ptr_order) {
+      bud_free_block *new_ptr_header = split_block((bud_free_block*)ptr_header, req_order);
+      void *new_ptr = ((bud_header*) new_ptr_header) + 1;
+    }
+
     return NULL;
 }
 
@@ -140,9 +179,11 @@ void bud_free(void *ptr) {
     return;
 }
 
+
 /*
 The following functions for bud_malloc
 */
+
 /* find the needed free block in the free_list_heads */
 bud_free_block *find_free(uint64_t t_order) {
     int pos = t_order - ORDER_MIN;
@@ -170,15 +211,22 @@ bud_free_block *split_block(bud_free_block *fblock, uint64_t t_order) {
   if (t_order == block_order)
     return fblock;
   //split the block into halves and put the right buddy into the free_list_heads
-  //uint32_t block_size = ORDER_TO_BLOCK_SIZE(block_order);
-  uint32_t split_size = ORDER_TO_BLOCK_SIZE(block_order - 1);
+  //uint32_t split_size = ORDER_TO_BLOCK_SIZE(block_order - 1);
+  uint64_t split_size = ORDER_TO_BLOCK_SIZE(block_order - 1);
   bud_free_block *left_buddy_block = fblock, *right_buddy_block = NULL;
   //decrease left buddy's order by 1
   (left_buddy_block->header).order = block_order - 1;
   //find the new address for right buddy and set its order the same as left buddy
-  uint64_t left_buddy_address = (uint64_t) left_buddy_block;
-  uint64_t right_buddy_address;
-  right_buddy_address = left_buddy_address^((uint64_t)split_size);
+  //cast to uintptr_t for pointer arithmetic
+  uintptr_t left_buddy_address = (uintptr_t) left_buddy_block;
+  uintptr_t right_buddy_address;
+  right_buddy_address = left_buddy_address^((uintptr_t)split_size);
+  //
+  /*cast to (char*) for pointer arithmetic
+  char *left_buddy_address = (char*) left_buddy_block;
+  char *right_buddy_address;
+  right_buddy_address = left_buddy_address^((char*)split_size);
+  */
   right_buddy_block = (bud_free_block*) right_buddy_address;
   (right_buddy_block->header).order = block_order - 1;
   //put the right buddy into the free_list_heads
@@ -241,11 +289,11 @@ The following functions for bud_free
 int valid_bud_ptr(void *ptr) {
     printf("The pointer gonna be verified is: %p\n", ptr);
     printf("The pointer's header is: %p\n", ((bud_header*) ptr-1));
-    uint64_t int_ptr = (uint64_t) ptr; // cast to int for easier comparing
+    uintptr_t int_ptr = (uintptr_t) ptr; // cast to int for easier comparing
     bud_header *ptr_header = (bud_header*) ptr - 1; // the address of the pointer's header
     //case 0: prt must be in range(bud_heap_start, bud_heap_end)
-    uint64_t heap_lower_bound = (uint64_t) bud_heap_start();
-    uint64_t heap_upper_bound = (uint64_t) bud_heap_end();
+    uintptr_t heap_lower_bound = (uintptr_t) bud_heap_start();
+    uintptr_t heap_upper_bound = (uintptr_t) bud_heap_end();
     /*
     for lower bound we need a block for header
     for the uppoer bound, the bud_heap_end() will return the 1st address that beyong the current heap
@@ -264,7 +312,7 @@ int valid_bud_ptr(void *ptr) {
     uint64_t ptr_order = ptr_header->order;
     if (ptr_order < ORDER_MIN || ptr_order > ORDER_MAX) {
         printf("case 2\n");
-        printf("The pointer's order is: %lu\n", ptr_order);
+        //printf("The pointer's order is: %lu\n", ptr_order);
         return 1;
     }
     //case 3: header.allocated is 1
@@ -314,11 +362,18 @@ bud_free_block *coalesce_block(bud_header *freed_block) {
     //check if it is the left or right buddy
     bud_header *buddy;
     bud_free_block *free_buddy;
-    uint64_t buddy_address;
     uint64_t freed_block_order = freed_block->order;
     uint64_t block_size = ORDER_TO_BLOCK_SIZE(freed_block_order);
-    uint64_t freed_block_address = (uint64_t) freed_block;
-    buddy_address = freed_block_address^block_size;
+    //cast to uintptr_t for pointer arithmetic
+    uintptr_t buddy_address;
+    uintptr_t freed_block_address = (uintptr_t) freed_block;
+    buddy_address = freed_block_address^((uintptr_t)block_size);
+    //
+    /*cast to (char*) for pointer arithmetic
+    char *buddy_address;
+    char *freed_block_address = (char*) freed_block;
+    buddy_address = freed_block_address^((char*)block_size);
+    */
     buddy = (bud_header*) buddy_address;
     //base case the freed block's buddy is not free
     //or the buddy & the block have different size
@@ -362,3 +417,7 @@ void remove_header(bud_free_block *free_buddy) {
     free_buddy->next = NULL;
     free_buddy->prev = NULL;
 }
+
+/*
+The following functions for bud_realloc
+*/
