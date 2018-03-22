@@ -64,15 +64,6 @@ void *bud_malloc(uint32_t rsize) {
       //cast the bud_free_block to bud_header
       //modify the header of that block to allocated
       bud_header *best_block_header = free_to_allocated(best_block, t_order, tsize, rsize);
-      /*
-      ((bud_header*) best_block)->allocated = 1;
-      ((bud_header*) best_block)->order = t_order;
-      if (ORDER_TO_BLOCK_SIZE(t_order) > tsize)
-        ((bud_header*) best_block)->padded = 1;
-      else
-        ((bud_header*) best_block)->padded = 0;
-      ((bud_header*) best_block)->rsize = rsize;
-      */
       //printf("The allocated block's order is: %u\n", best_block_header->order);
       return (best_block_header + 1);
     }
@@ -391,12 +382,6 @@ bud_free_block *coalesce_block(bud_header *freed_block) {
     //for left buddy
     if (buddy_address < freed_block_address) {
       //remove the left buddy from the free_list_heads
-      /* original way
-      free_buddy->prev->next = free_buddy->next;
-      free_buddy->next->prev = free_buddy->prev;
-      free_buddy->next = NULL;
-      free_buddy->prev = NULL;
-      */
       remove_header(free_buddy);
       //change the order of left buddy
       buddy->order += 1;
