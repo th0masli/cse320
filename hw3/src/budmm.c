@@ -123,6 +123,11 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
     }
     if (ptr == NULL)
       return bud_malloc(rsize);
+    //maybe senseless
+    if (ptr == NULL && rsize == 0) {
+      errno = EINVAL;
+      return NULL;
+    }
     //calculate the new total size; dealing with 3 cases
     uint32_t total_size = rsize + sizeof(bud_header);
     uint64_t req_order = get_order(total_size);// get the best enough order
