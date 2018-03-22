@@ -153,7 +153,9 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
     //case 2: the new total size is smaller than the current block size
     if (req_order < ptr_order) {
       bud_free_block *new_ptr_header = split_block((bud_free_block*)ptr_header, req_order);
-      void *new_ptr = ((bud_header*) new_ptr_header) + 1;
+      //update the new header
+      bud_header *new_header = free_to_allocated(new_ptr_header, req_order, total_size, rsize);
+      void *new_ptr = new_header + 1;
       return new_ptr;
     }
 
@@ -302,25 +304,25 @@ int valid_bud_ptr(void *ptr) {
     for the uppoer bound, the bud_heap_end() will return the 1st address that beyong the current heap
     */
     if (int_ptr <= heap_lower_bound || int_ptr >= heap_upper_bound) {
-        printf("case 0\n");
+        //printf("case 0\n");
         return 1;
     }
     //case 1: ptr must align to a multiple of 8; sizeof(bud_header)?
     uint64_t align_factor = sizeof(bud_header);
     if ((int_ptr%align_factor) != 0) {
-          printf("case 1\n");
+        //printf("case 1\n");
         return 1;
     }
     //case 2: order must in range(ORDER_MIN, ORDER_MAX)
     uint64_t ptr_order = ptr_header->order;
     if (ptr_order < ORDER_MIN || ptr_order > ORDER_MAX) {
-        printf("case 2\n");
+        //printf("case 2\n");
         //printf("The pointer's order is: %lu\n", ptr_order);
         return 1;
     }
     //case 3: header.allocated is 1
     if (ptr_header->allocated != 1) {
-        printf("case 3\n");
+        //printf("case 3\n");
         return 1;
     }
     //case 4: padded consistency
@@ -331,19 +333,19 @@ int valid_bud_ptr(void *ptr) {
     uint64_t total_size = ptr_header->rsize + sizeof(bud_header);
     uint64_t block_size = ORDER_TO_BLOCK_SIZE(ptr_header->order);
     if (ptr_header->padded == 0 && total_size != block_size) {
-        printf("case 4\n");
+        //printf("case 4\n");
         return 1;
     }
     if (ptr_header->padded == 1 && total_size == block_size) {
-        printf("case 4\n");
+        //printf("case 4\n");
         return 1;
     }
     //case 5: requested size is consistent with the order
     uint64_t consistent_order = get_order((ptr_header->rsize)+sizeof(bud_header));
     if (consistent_order != ptr_order) {
-        printf("The pointer's order is: %llu\n", ptr_order);
-        printf("The consistent order for the requested size is: %llu\n", consistent_order);
-        printf("case 5\n");
+        //printf("The pointer's order is: %llu\n", ptr_order);
+        //printf("The consistent order for the requested size is: %llu\n", consistent_order);
+        //printf("case 5\n");
         return 1;
     }
 

@@ -45,14 +45,8 @@ static void bk_print_free(bud_free_block *hdr) {
     uint64_t next = (uint64_t)hdr->next;
     uint64_t prev = (uint64_t)hdr->prev;
     fprintf(stderr, "+---------------------------------------------------------------------------------------+\n");
-    //original printf
     fprintf(stderr, "|%31sNEXT: 0x%016lx%32s|\n", "", next, "");
     fprintf(stderr, "|%31sPREV: 0x%016lx%32s|\n", "", prev, "");
-    //
-    /*modified for macOS
-    fprintf(stderr, "|%31sNEXT: 0x%016llx%32s|\n", "", next, "");
-    fprintf(stderr, "|%31sPREV: 0x%016llx%32s|\n", "", prev, "");
-    */
     fprintf(stderr, "|%87s|\n", "");
     fprintf(stderr, "+---------------------------------------------------------------------------------------+\n");
     // 1 + 31 + 8 + 16 + 32 + 1 = 89
