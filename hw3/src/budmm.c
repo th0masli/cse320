@@ -50,7 +50,7 @@ void *bud_malloc(uint32_t rsize) {
     /* if the requested size is valid then try to allocate */
     bud_free_block *best_block; // the best valid block to be allocated
     uint32_t tsize = hsize + rsize; //total needed size; header size + requested size
-    printf("The total size is: %u\n", tsize);
+    //printf("The total size is: %u\n", tsize);
     //find the suitable free block
     uint64_t t_order = get_order(tsize); //get the best enough order
     //printf("The order needed is: %lu\n", t_order);
@@ -73,7 +73,7 @@ void *bud_malloc(uint32_t rsize) {
         ((bud_header*) best_block)->padded = 0;
       ((bud_header*) best_block)->rsize = rsize;
       */
-      printf("The allocated block's order is: %u\n", best_block_header->order);
+      //printf("The allocated block's order is: %u\n", best_block_header->order);
       return (best_block_header + 1);
     }
     //if no valid free block in the free list call bud_sbrk
@@ -104,9 +104,11 @@ void *bud_malloc(uint32_t rsize) {
         best_block = split_block(new_block, t_order);
         //printf("The best free block's address is: %p\n", best_block);
         bud_header *best_block_header = free_to_allocated(best_block, t_order, tsize, rsize);
+        /*
         printf("The allocated block's order is: %u\n", best_block_header->order);
         printf("The address allocated is: %p\n", (best_block_header + 1));
         printf("The allocated address header is: %p\n", best_block_header);
+        */
         return (best_block_header + 1);
       }
     }
@@ -121,7 +123,7 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
       return NULL;
     }
     if (valid_bud_ptr(ptr)) {
-      printf("Calling abort\n");
+      //printf("Calling abort\n");
       abort();
     }
     if (rsize == 0) {
@@ -152,6 +154,7 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
     if (req_order < ptr_order) {
       bud_free_block *new_ptr_header = split_block((bud_free_block*)ptr_header, req_order);
       void *new_ptr = ((bud_header*) new_ptr_header) + 1;
+      return new_ptr;
     }
 
     return NULL;
@@ -161,7 +164,7 @@ void bud_free(void *ptr) {
     //verify the ptr belongs to an allocated block
     //if it is a valid pointer
     int verifi_res = valid_bud_ptr(ptr);
-    printf("The verification result is: %d\n", verifi_res);
+    //printf("The verification result is: %d\n", verifi_res);
     if (!verifi_res) {
       bud_header *ptr_header = (bud_header*) ptr - 1; // get the header of the pointer
       //mark as free
@@ -172,7 +175,7 @@ void bud_free(void *ptr) {
       insert_free_list(free_block);
     } else {
       //call abort
-      printf("Calling abort\n");
+      //printf("Calling abort\n");
       abort();
     }
 
@@ -287,8 +290,8 @@ The following functions for bud_free
 
 /* verify if it is a valid pointer to free */
 int valid_bud_ptr(void *ptr) {
-    printf("The pointer gonna be verified is: %p\n", ptr);
-    printf("The pointer's header is: %p\n", ((bud_header*) ptr-1));
+    //printf("The pointer gonna be verified is: %p\n", ptr);
+    //printf("The pointer's header is: %p\n", ((bud_header*) ptr-1));
     uintptr_t int_ptr = (uintptr_t) ptr; // cast to int for easier comparing
     bud_header *ptr_header = (bud_header*) ptr - 1; // the address of the pointer's header
     //case 0: prt must be in range(bud_heap_start, bud_heap_end)
