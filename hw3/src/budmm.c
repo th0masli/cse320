@@ -339,8 +339,10 @@ int valid_bud_ptr(void *ptr) {
         return 1;
     }
     //case 5: requested size is consistent with the order
-    uint64_t consistent_order = get_order(ptr_header->rsize);
+    uint64_t consistent_order = get_order((ptr_header->rsize)+sizeof(bud_header));
     if (consistent_order != ptr_order) {
+        printf("The pointer's order is: %llu\n", ptr_order);
+        printf("The consistent order for the requested size is: %llu\n", consistent_order);
         printf("case 5\n");
         return 1;
     }
