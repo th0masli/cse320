@@ -85,7 +85,9 @@ void *bud_malloc(uint32_t rsize) {
         //put the old break point address into the bud_free_block and set the next and prev to NULL
         bud_free_block *new_block = (bud_free_block*) increment_req;
         (new_block->header).order = ORDER_MAX-1;
-        /*in macOS the following are all Initialize correctlly
+        //printf("The new block's info about allocated is: %u\n", ((new_block->header).allocated));
+        //printf("The new block's padded is init to: %u\n", ((new_block->header).padded = 0));
+        /*the following are all Initialize correctlly
         (new_block->header).allocated = 0;
         (new_block->header).padded = 0;
         (new_block->header).rsize = 0;
@@ -99,6 +101,7 @@ void *bud_malloc(uint32_t rsize) {
         printf("The allocated block's order is: %u\n", best_block_header->order);
         printf("The address allocated is: %p\n", (best_block_header + 1));
         printf("The allocated address header is: %p\n", best_block_header);
+        printf("================================\n");
         */
         return (best_block_header + 1);
       }
@@ -205,7 +208,7 @@ bud_free_block *find_free(uint64_t t_order) {
 /* splitting block recursively; in every recursive call put the right buddy to the free_list_heads */
 bud_free_block *split_block(bud_free_block *fblock, uint64_t t_order) {
   //printf("The new block's address is: %p\n", fblock);
-  //printf("The desired order is: %llu\n", t_order);
+  //printf("The desired order is: %lu\n", t_order);
   //base case: the block has a valid order for allocation
   uint64_t block_order = (fblock->header).order;
   //printf("The current block's order is: %llu\n", block_order);
