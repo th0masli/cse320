@@ -343,8 +343,6 @@ int valid_bud_ptr(void *ptr) {
     //case 5: requested size is consistent with the order
     uint64_t consistent_order = get_order((ptr_header->rsize)+sizeof(bud_header));
     if (consistent_order != ptr_order) {
-        //printf("The pointer's order is: %llu\n", ptr_order);
-        //printf("The consistent order for the requested size is: %llu\n", consistent_order);
         //printf("case 5\n");
         return 1;
     }
@@ -391,7 +389,7 @@ bud_free_block *coalesce_block(bud_header *freed_block) {
     //cast the buddy header to bud_free_block
     free_buddy = (bud_free_block*) buddy; //it shoul be in the free_list_heads
     //for left buddy
-    if (buddy < freed_block) {
+    if (buddy_address < freed_block_address) {
       //remove the left buddy from the free_list_heads
       /* original way
       free_buddy->prev->next = free_buddy->next;
