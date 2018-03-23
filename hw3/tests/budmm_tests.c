@@ -332,7 +332,124 @@ Test(bud_realloc_suite, realloc_smaller_block_free_block, .init = bud_mem_init, 
 //STUDENT UNIT TESTS SHOULD BE WRITTEN BELOW
 //DO NOT DELETE THESE COMMENTS
 //############################################
-/*
+
+//test if the 1st malloc will creates a free_list with only 2 empty element
+Test(bud_malloc_suite, init_malloc_free_list, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    void *ptr = bud_malloc(512); // 512 -> 1024
+    uint64_t exp_order = 10; // 2^10 = 1024
+    //order 10, 11, 12, 13 should not be empty
+    for (int i=10; i<14; i++) {
+        cr_assert_eq(free_list_is_empty(i), 0,
+         "List [%d] should not be empty!", i - ORDER_MIN);
+    }
+    //order 5, 6, 7, 8, 9, 14 should be empty
+    for (int j=ORDER_MIN; j<exp_order; j++) {
+        cr_assert_neq(free_list_is_empty(j), 0,
+          "List [%d] contains an unexpected block!", j - ORDER_MIN);
+    }
+    cr_assert_neq(free_list_is_empty(ORDER_MAX-1), 0,
+          "List [%d] contains an unexpected block!", (ORDER_MAX-1) - ORDER_MIN);
+
+    expect_errno_value(0);
+}
+
+//test if coalescing blocks will go for both left and right buddies
+Test(bud_free_suite, free_coalescing_both_sides, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    //use order 10 ,11 and 13
+    void *ptr_0 = bud_malloc(512); // 512 -> 1024
+    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
+    void *ptr_2 = bud_malloc(4096); // 4096-> 8192
+    uint64_t order_10 = 10; // 2^10 = 1024
+    uint64_t order_11 = 11; // 2^11 = 2048
+    uint64_t order_12 = 12;
+    uint64_t order_13 = 13; // 2^13 = 8192
+    bud_free(ptr_0); //free the order 10 block
+    //after coalescing order_10 should be empty
+    cr_assert_neq(free_list_is_empty(order_10), 0,
+          "List [%d] contains an unexpected block!", order_10 - ORDER_MIN);
+    //and order_11 should not be empty
+    cr_assert_eq(free_list_is_empty(order_11), 0,
+         "List [%d] should not be empty!", order_11 - ORDER_MIN);
+    bud_free(ptr_1); //free the order 11 block
+    //after coalescing order_11 and order_12 should be empty
+    cr_assert_neq(free_list_is_empty(order_11), 0,
+          "List [%d] contains an unexpected block!", order_11 - ORDER_MIN);
+    cr_assert_neq(free_list_is_empty(order_12), 0,
+          "List [%d] contains an unexpected block!", order_12 - ORDER_MIN);
+    //and order_13 should not be empty
+    cr_assert_eq(free_list_is_empty(order_13), 0,
+         "List [%d] should not be empty!", order_13 - ORDER_MIN);
+}
+
+//test if the bud_realloc set the rsize field right when user requests to bud_realloc a same block
+Test(bud_realloc_suite, realloc_smaller_set_new_rsize, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    void *ptr = bud_malloc(sizeof(long)); // 4 -> 32
+    void *ptr_dup = bud_realloc(ptr, sizeof(long)*2); // 8 -> 32
+
+    cr_assert_not_null(ptr_dup, "bud_realloc returned NULL");
+
+    bud_header *ptr_dup_header = PAYLOAD_TO_HEADER(ptr_dup);
+
+    cr_assert((ptr_dup_header->rsize)==(sizeof(long)*2), "bud_realloc didn't set request size right");
+
+    expect_errno_value(0);
+}
+
+//test if the bud_realloc keeps the original block data
+Test(bud_realloc_suite, realloc_larger_block_data, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+    char *small = bud_malloc(sizeof(int)); // 4 -> 32
+    uint32_t req_size = sizeof(int);
+    //fill up the small with '3'
+    for (int i=0; i<req_size; i++) {
+        small[i] = '3';
+    }
+    char *big = bud_realloc(small, sizeof(int)*16); // 64 -> 128
+    for (int j=0; j<req_size; j++) {
+        cr_assert(big[j]=='3', "bud_realloc didn't copy the original data right");
+    }
+    expect_errno_value(0);
+}
+
+//test if 2 max order block are coalesced
+Test(bud_free_suite, free_max_block, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    //use order 10 ,11 and 14
+    //need to call bud_sbrk()
+    void *ptr_0 = bud_malloc(512); // 512 -> 1024
+    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
+    void *ptr_2 = bud_malloc(8192); // 8192 -> 16384
+    uint64_t order_10 = 10; // 2^10 = 1024
+    uint64_t order_11 = 11; // 2^11 = 2048
+    uint64_t order_14 = ORDER_MAX-1; // 2^14 = 16384
+    //free the 1st half max block
+    bud_free(ptr_0);
+    bud_free(ptr_1);
+    //ORDER_MAX should not be empty
+    cr_assert_eq(free_list_is_empty(ORDER_MAX-1), 0,
+         "List [%d] should not be empty!", (ORDER_MAX-1) - ORDER_MIN);
+    //free the 2nd half max block
+    bud_free(ptr_2);
+    //these 2 max blocks should not coalesce
+    //there are 2 order_14 free blocks
+    cr_assert_neq(free_list_heads[order_14-ORDER_MIN].next->next,
+          &free_list_heads[order_14-ORDER_MIN],
+          "A second block is expected in free list #%d!",
+          order_14-ORDER_MIN);
+    //no other order free blocks
+    for (int i=ORDER_MIN; i<(ORDER_MAX-2); i++)
+        cr_assert_neq(free_list_is_empty(i), 0,
+          "List [%d] contains an unexpected block!", i - ORDER_MIN);
+}
+
+/*original tests without timeout
 Test(bud_malloc_suite, easy_malloc_a_pointer, .init = bud_mem_init, .fini = bud_mem_fini
      ) {
     errno = 0;
@@ -587,120 +704,3 @@ Test(bud_realloc_suite, realloc_smaller_block_free_block, .init = bud_mem_init, 
     expect_errno_value(0);
 }
 */
-/* self_defined tests */
-
-//test if the 1st malloc will creates a free_list with only 2 empty element
-Test(bud_malloc_suite, init_malloc_free_list, .init = bud_mem_init, .fini = bud_mem_fini) {
-    errno = 0;
-
-    void *ptr = bud_malloc(512); // 512 -> 1024
-    uint64_t exp_order = 10; // 2^10 = 1024
-    //order 10, 11, 12, 13 should not be empty
-    for (int i=10; i<14; i++) {
-        cr_assert_eq(free_list_is_empty(i), 0,
-         "List [%d] should not be empty!", i - ORDER_MIN);
-    }
-    //order 5, 6, 7, 8, 9, 14 should be empty
-    for (int j=ORDER_MIN; j<exp_order; j++) {
-        cr_assert_neq(free_list_is_empty(j), 0,
-          "List [%d] contains an unexpected block!", j - ORDER_MIN);
-    }
-    cr_assert_neq(free_list_is_empty(ORDER_MAX-1), 0,
-          "List [%d] contains an unexpected block!", (ORDER_MAX-1) - ORDER_MIN);
-
-    expect_errno_value(0);
-}
-
-//test if coalescing blocks will go for both left and right buddies
-Test(bud_free_suite, free_coalescing_both_sides, .init = bud_mem_init, .fini = bud_mem_fini) {
-    errno = 0;
-
-    //use order 10 ,11 and 13
-    void *ptr_0 = bud_malloc(512); // 512 -> 1024
-    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
-    void *ptr_2 = bud_malloc(4096); // 4096-> 8192
-    uint64_t order_10 = 10; // 2^10 = 1024
-    uint64_t order_11 = 11; // 2^11 = 2048
-    uint64_t order_12 = 12;
-    uint64_t order_13 = 13; // 2^13 = 8192
-    bud_free(ptr_0); //free the order 10 block
-    //after coalescing order_10 should be empty
-    cr_assert_neq(free_list_is_empty(order_10), 0,
-          "List [%d] contains an unexpected block!", order_10 - ORDER_MIN);
-    //and order_11 should not be empty
-    cr_assert_eq(free_list_is_empty(order_11), 0,
-         "List [%d] should not be empty!", order_11 - ORDER_MIN);
-    bud_free(ptr_1); //free the order 11 block
-    //after coalescing order_11 and order_12 should be empty
-    cr_assert_neq(free_list_is_empty(order_11), 0,
-          "List [%d] contains an unexpected block!", order_11 - ORDER_MIN);
-    cr_assert_neq(free_list_is_empty(order_12), 0,
-          "List [%d] contains an unexpected block!", order_12 - ORDER_MIN);
-    //and order_13 should not be empty
-    cr_assert_eq(free_list_is_empty(order_13), 0,
-         "List [%d] should not be empty!", order_13 - ORDER_MIN);
-}
-
-//test if the bud_realloc set the rsize field right when user requests to bud_realloc a same block
-Test(bud_realloc_suite, realloc_smaller_set_new_rsize, .init = bud_mem_init, .fini = bud_mem_fini) {
-    errno = 0;
-
-    void *ptr = bud_malloc(sizeof(long)); // 4 -> 32
-    void *ptr_dup = bud_realloc(ptr, sizeof(long)*2); // 8 -> 32
-
-    cr_assert_not_null(ptr_dup, "bud_realloc returned NULL");
-
-    bud_header *ptr_dup_header = PAYLOAD_TO_HEADER(ptr_dup);
-
-    cr_assert((ptr_dup_header->rsize)==(sizeof(long)*2), "bud_realloc didn't set request size right");
-
-    expect_errno_value(0);
-}
-
-//test if the bud_realloc keeps the original block data
-Test(bud_realloc_suite, realloc_larger_block_data, .init = bud_mem_init, .fini = bud_mem_fini) {
-    errno = 0;
-    char *small = bud_malloc(sizeof(int)); // 4 -> 32
-    uint32_t req_size = sizeof(int);
-    //fill up the small with '3'
-    for (int i=0; i<req_size; i++) {
-        small[i] = '3';
-    }
-    char *big = bud_realloc(small, sizeof(int)*16); // 64 -> 128
-    for (int j=0; j<req_size; j++) {
-        cr_assert(big[j]=='3', "bud_realloc didn't copy the original data right");
-    }
-    expect_errno_value(0);
-}
-
-//test if 2 max order block are coalesced
-Test(bud_free_suite, free_max_block, .init = bud_mem_init, .fini = bud_mem_fini) {
-    errno = 0;
-
-    //use order 10 ,11 and 14
-    //need to call bud_sbrk()
-    void *ptr_0 = bud_malloc(512); // 512 -> 1024
-    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
-    void *ptr_2 = bud_malloc(8192); // 8192 -> 16384
-    uint64_t order_10 = 10; // 2^10 = 1024
-    uint64_t order_11 = 11; // 2^11 = 2048
-    uint64_t order_14 = ORDER_MAX-1; // 2^14 = 16384
-    //free the 1st half max block
-    bud_free(ptr_0);
-    bud_free(ptr_1);
-    //ORDER_MAX should not be empty
-    cr_assert_eq(free_list_is_empty(ORDER_MAX-1), 0,
-         "List [%d] should not be empty!", (ORDER_MAX-1) - ORDER_MIN);
-    //free the 2nd half max block
-    bud_free(ptr_2);
-    //these 2 max blocks should not coalesce
-    //there are 2 order_14 free blocks
-    cr_assert_neq(free_list_heads[order_14-ORDER_MIN].next->next,
-          &free_list_heads[order_14-ORDER_MIN],
-          "A second block is expected in free list #%d!",
-          order_14-ORDER_MIN);
-    //no other order free blocks
-    for (int i=ORDER_MIN; i<(ORDER_MAX-2); i++)
-        cr_assert_neq(free_list_is_empty(i), 0,
-          "List [%d] contains an unexpected block!", i - ORDER_MIN);
-}

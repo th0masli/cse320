@@ -235,6 +235,8 @@ bud_free_block *split_block(bud_free_block *fblock, uint64_t t_order) {
   */
   right_buddy_block = (bud_free_block*) right_buddy_address;
   (right_buddy_block->header).order = block_order - 1;
+  //mark the right buddy as free
+  mark_free(&(right_buddy_block->header));
   //put the right buddy into the free_list_heads
   insert_free_list(right_buddy_block);
 
@@ -364,7 +366,7 @@ void mark_free(bud_header *freed_block) {
    sizes have to be same
 */
 bud_free_block *coalesce_block(bud_header *freed_block) {
-    //reaching the maximum order
+    //base case reaching the maximum order
     if (freed_block->order == (ORDER_MAX-1))
       return ((bud_free_block*) freed_block);
     //find the buddy for the just freed block
