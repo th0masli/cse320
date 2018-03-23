@@ -138,6 +138,8 @@ void *bud_realloc(void *ptr, uint32_t rsize) {
     uint64_t ptr_order = ptr_header->order;
     //case 0: the new total size is the same as the current block size
     if (req_order == ptr_order) {
+      //set the header to hold the rsize
+      ptr_header->rsize = rsize;
       return ptr;
     }
     //case 1: the new total size is bigger than the current block size
@@ -362,6 +364,9 @@ void mark_free(bud_header *freed_block) {
    sizes have to be same
 */
 bud_free_block *coalesce_block(bud_header *freed_block) {
+    //reaching the maximum order
+    if (freed_block->order == (ORDER_MAX-1))
+      return ((bud_free_block*) freed_block);
     //find the buddy for the just freed block
     //check if it is the left or right buddy
     bud_header *buddy;
@@ -381,7 +386,8 @@ bud_free_block *coalesce_block(bud_header *freed_block) {
     buddy = (bud_header*) buddy_address;
     //base case the freed block's buddy is not free
     //or the buddy & the block have different size
-    if ((buddy->allocated == 1) || (buddy->order != freed_block->order)) {
+    //or reaching the maximum order
+    if ((buddy->allocated == 1) || (buddy->order != freed_block->order) || (buddy->order == (ORDER_MAX-1))) {
       return ((bud_free_block*) freed_block);
     }
     //if the buddy is free and has the same size as the free block

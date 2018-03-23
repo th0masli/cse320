@@ -332,4 +332,375 @@ Test(bud_realloc_suite, realloc_smaller_block_free_block, .init = bud_mem_init, 
 //STUDENT UNIT TESTS SHOULD BE WRITTEN BELOW
 //DO NOT DELETE THESE COMMENTS
 //############################################
+/*
+Test(bud_malloc_suite, easy_malloc_a_pointer, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+    int **x = bud_malloc(sizeof(int *));
 
+    cr_assert_not_null(x, "bud_malloc returned null");
+
+    int a = 4;
+    *x = &a;
+
+    cr_assert(*x == &a, "bud_malloc failed to give proper space for a pointer!");
+
+    bud_header *bhdr = PAYLOAD_TO_HEADER(x);
+    assert_header_values(bhdr, ALLOCATED, ORDER_MIN, PADDED, sizeof(int *));
+    expect_errno_value(0);
+}
+
+Test(bud_malloc_suite, medium_malloc_diff_types, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    struct s1 {
+        int a;
+        float b;
+        char *c;
+    };
+
+    struct s2 {
+        int a[100];
+        char *b;
+    };
+
+    uint32_t size = MIN_BLOCK_SIZE - sizeof(bud_header);
+    char* carr = bud_malloc(size);
+    cr_assert_not_null(carr, "bud_malloc returned null on the first call");
+    for (int i = 0; i < size; i++) {
+        carr[i] = 'a';
+    }
+
+    uint32_t sizeof_s1 = sizeof(struct s1);
+    struct s1 *s_1 = bud_malloc(sizeof_s1);
+    cr_assert_not_null(s_1, "bud_malloc returned null on the second call");
+    s_1->a = 4;
+    s_1->b = 2;
+
+    uint32_t sizeof_s2 = sizeof(struct s2);
+    struct s2 *s_2 = bud_malloc(sizeof_s2);
+    cr_assert_not_null(s_2, "bud_malloc returned null on the third call");
+    for (int i = 0; i < 100; i++) {
+        s_2->a[i] = 5;
+    }
+
+    bud_header *carr_hdr = PAYLOAD_TO_HEADER(carr);
+    bud_header *s1_hdr = PAYLOAD_TO_HEADER(s_1);
+    bud_header *s2_hdr = PAYLOAD_TO_HEADER(s_2);
+
+    assert_header_values(carr_hdr, ALLOCATED, ORDER_MIN, UNPADDED, size);
+    for(int i = 0; i < size; i++) {
+        cr_expect(carr[i] == 'a', "carr[%d] was changed!", i);
+    }
+
+    assert_header_values(s1_hdr, ALLOCATED, ORDER_MIN, PADDED, sizeof_s1);
+    cr_expect(s_1->a == 4, "field `a` of struct s_1 was changed!");
+
+    assert_header_values(s2_hdr, ALLOCATED, 9, PADDED, sizeof_s2);
+    for (int i = 0; i < 100; i++) {
+        cr_expect(s_2->a[0] == 5, "field `a` of struct s_2 was changed!");
+    }
+
+    expect_errno_value(0);
+}
+
+Test(bud_malloc_suite, malloc_max_heap, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    for(int n = 0; n < MAX_HEAP_SIZE / MAX_BLOCK_SIZE; n++) {
+    char *x = bud_malloc(MAX_BLOCK_SIZE - sizeof(bud_header));
+    for(int i = 0; i < MAX_BLOCK_SIZE - sizeof(bud_header); i++) {
+        x[i] = 'b';
+    }
+
+    cr_assert_not_null(x);
+
+    bud_header *bhdr = PAYLOAD_TO_HEADER(x);
+    assert_header_values(bhdr, ALLOCATED, ORDER_MAX-1, UNPADDED,
+                 MAX_BLOCK_SIZE - sizeof(bud_header));
+    assert_null_free_lists();
+    expect_errno_value(0);
+    }
+
+    int *y = bud_malloc(sizeof(int));
+    cr_assert_null(y);
+    expect_errno_value(ENOMEM);
+}
+
+Test(bud_free_suite, free_no_coalesce, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    void *a = bud_malloc(4096 - sizeof(bud_header)); // -> 4096
+    int *x = bud_malloc(sizeof(int)); // -> MIN_BLOCK_SIZE
+    void *b = bud_malloc(sizeof(double)*2); // -> MIN_BLOCK_SIZE
+    char *y = bud_malloc(sizeof(char)*100); // -> 128
+    bud_header *bhdr_b = PAYLOAD_TO_HEADER(b);
+
+    assert_header_values(bhdr_b, ALLOCATED, ORDER_MIN, PADDED, sizeof(double)*2);
+
+    bud_free(x);
+
+    bud_free_block *blk = free_list_heads[0].next; // only x is expected on the list
+    assert_nonempty_free_list(ORDER_MIN);
+    assert_free_block_values(blk, ORDER_MIN, &free_list_heads[0], &free_list_heads[0]);
+
+    bud_free(y);
+
+    blk = free_list_heads[7-ORDER_MIN].next;
+    assert_nonempty_free_list(7);
+    assert_free_block_values(blk, 7, &free_list_heads[7-ORDER_MIN],
+                 &free_list_heads[7-ORDER_MIN]);
+
+    cr_expect(bud_heap_start() + 1*MAX_BLOCK_SIZE == bud_heap_end(),
+          "Allocated more heap than necessary!");
+
+    expect_errno_value(0);
+}
+
+Test(bud_free_suite, free_coalesce_higher_addr_check_ptrs, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+                                             //  5   6   7   8   9  10  11  12  13  14
+                                             //  0   0   0   0   0   0   0   0   0   0
+    void *a = bud_malloc(sizeof(long));      //  1   1   1   1   1   1   1   1   1   0
+    void *w = bud_malloc(sizeof(int) * 100); //  1   1   1   1   0   1   1   1   1   0
+    void *x = bud_malloc(sizeof(char));      //  0   1   1   1   0   1   1   1   1   0
+    void *b = bud_malloc(sizeof(int));       //  1   0   1   1   0   1   1   1   1   0
+    void *y = bud_malloc(sizeof(int) * 100); //  1   0   1   1   1   0   1   1   1   0
+    void *z = bud_malloc(sizeof(char));      //  0   0   1   1   1   0   1   1   1   0
+    void *c = bud_malloc(sizeof(int));       //  1   1   0   1   1   0   1   1   1   0
+    void *d = bud_malloc(sizeof(int));       //  0   1   0   1   1   0   1   1   1   0
+
+    assert_empty_free_list(5);
+    assert_nonempty_free_list(6);
+    assert_empty_free_list(7);
+    assert_nonempty_free_list(8);
+    assert_nonempty_free_list(9);
+    assert_empty_free_list(10);
+
+    bud_free(c);                             //  1   1   0   1   1   0   1   1   1   0
+    bud_free(z);                             //  2   1   0   1   1   0   1   1   1   0
+    bud_free(y);                             //  2   1   0   1   0   1   1   1   1   0
+    bud_free(a);                             //  3   1   0   1   0   1   1   1   1   0
+    bud_free(b);                             //  2   2   0   1   0   1   1   1   1   0
+    bud_free(x);                             //  1   1   1   1   0   1   1   1   1   0
+
+    assert_nonempty_free_list(5);
+    assert_nonempty_free_list(6);
+    assert_nonempty_free_list(7);
+    assert_nonempty_free_list(8);
+    assert_empty_free_list(9);
+    assert_nonempty_free_list(10);
+
+    bud_header *y_hdr = PAYLOAD_TO_HEADER(y);
+    cr_assert(((void*)free_list_heads[10-ORDER_MIN].next == (void*)y_hdr),
+              "The block in free list %d should be %p!",
+          10-ORDER_MIN, y_hdr);
+    assert_free_block_values((bud_free_block*)y_hdr, 10,
+                 &free_list_heads[10-ORDER_MIN],
+                 &free_list_heads[10-ORDER_MIN]);
+
+    bud_header *a_hdr = PAYLOAD_TO_HEADER(a);
+    cr_assert(((void*)free_list_heads[7-ORDER_MIN].next == (void*)a_hdr),
+              "The block in free list %d should be %p!",
+          7-ORDER_MIN, a_hdr);
+    assert_free_block_values((bud_free_block*)a_hdr, 7,
+                 &free_list_heads[7-ORDER_MIN],
+                 &free_list_heads[7-ORDER_MIN]);
+
+    expect_errno_value(0);
+}
+
+Test(bud_realloc_suite, realloc_diff_hdr, .init = bud_mem_init, .fini = bud_mem_fini,
+     .signal = SIGABRT) {
+    errno = 0;
+    int *x = bud_malloc(sizeof(int));
+
+    bud_header *bhdr = PAYLOAD_TO_HEADER(x);
+
+    bhdr->order = ORDER_MIN + 1;
+
+    void *y = bud_realloc(x, 200);
+    (void)y;
+}
+
+Test(bud_realloc_suite, realloc_size_zero_free, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    void *x = bud_malloc(sizeof(int));
+    bud_malloc(sizeof(int));
+
+    void *y = bud_realloc(x, 0); // should just free x
+
+    cr_assert_null(y);
+
+    assert_nonempty_free_list(ORDER_MIN);
+    assert_free_block_values(free_list_heads[0].next, ORDER_MIN,
+                 &free_list_heads[0], &free_list_heads[0]);
+
+    expect_errno_value(0);
+}
+
+Test(bud_realloc_suite, realloc_larger_block, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    void *original = bud_malloc(sizeof(int));
+    bud_malloc(500);
+    int* new = bud_realloc(original, sizeof(int) * 100); // 400 -> 512
+    // original will do a few steps of coalesce, resulting in 512
+
+    bud_header *bhdr_new = PAYLOAD_TO_HEADER(new);
+    assert_header_values(bhdr_new, ALLOCATED, 9, PADDED, sizeof(int) * 100);
+
+    cr_assert_not_null(new, "bud_realloc returned NULL");
+    assert_nonempty_free_list(9);
+    cr_assert_neq(free_list_heads[9-ORDER_MIN].next->next,
+          &free_list_heads[9-ORDER_MIN],
+          "A second block is expected in free list #%d!",
+          9-ORDER_MIN);
+
+    expect_errno_value(0);
+}
+
+Test(bud_realloc_suite, realloc_smaller_block_free_block, .init = bud_mem_init, .fini = bud_mem_fini
+     ) {
+    errno = 0;
+
+    void *x = bud_malloc(sizeof(double) * 4); // 32 -> 64
+    void *y = bud_realloc(x, sizeof(int));
+
+    cr_assert_not_null(y, "bud_realloc returned NULL!");
+
+    bud_header *bhdr_y = PAYLOAD_TO_HEADER(y);
+    assert_header_values(bhdr_y, ALLOCATED, ORDER_MIN, PADDED, sizeof(int));
+
+    assert_nonempty_free_list(ORDER_MIN);
+    cr_assert(((char *)(free_list_heads[0].next) == (char *)(bhdr_y) + 32),
+          "The split block of bud_realloc is not at the right place!");
+
+    expect_errno_value(0);
+}
+*/
+/* self_defined tests */
+
+//test if the 1st malloc will creates a free_list with only 2 empty element
+Test(bud_malloc_suite, init_malloc_free_list, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    void *ptr = bud_malloc(512); // 512 -> 1024
+    uint64_t exp_order = 10; // 2^10 = 1024
+    //order 10, 11, 12, 13 should not be empty
+    for (int i=10; i<14; i++) {
+        cr_assert_eq(free_list_is_empty(i), 0,
+         "List [%d] should not be empty!", i - ORDER_MIN);
+    }
+    //order 5, 6, 7, 8, 9, 14 should be empty
+    for (int j=ORDER_MIN; j<exp_order; j++) {
+        cr_assert_neq(free_list_is_empty(j), 0,
+          "List [%d] contains an unexpected block!", j - ORDER_MIN);
+    }
+    cr_assert_neq(free_list_is_empty(ORDER_MAX-1), 0,
+          "List [%d] contains an unexpected block!", (ORDER_MAX-1) - ORDER_MIN);
+
+    expect_errno_value(0);
+}
+
+//test if coalescing blocks will go for both left and right buddies
+Test(bud_free_suite, free_coalescing_both_sides, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    //use order 10 ,11 and 13
+    void *ptr_0 = bud_malloc(512); // 512 -> 1024
+    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
+    void *ptr_2 = bud_malloc(4096); // 4096-> 8192
+    uint64_t order_10 = 10; // 2^10 = 1024
+    uint64_t order_11 = 11; // 2^11 = 2048
+    uint64_t order_12 = 12;
+    uint64_t order_13 = 13; // 2^13 = 8192
+    bud_free(ptr_0); //free the order 10 block
+    //after coalescing order_10 should be empty
+    cr_assert_neq(free_list_is_empty(order_10), 0,
+          "List [%d] contains an unexpected block!", order_10 - ORDER_MIN);
+    //and order_11 should not be empty
+    cr_assert_eq(free_list_is_empty(order_11), 0,
+         "List [%d] should not be empty!", order_11 - ORDER_MIN);
+    bud_free(ptr_1); //free the order 11 block
+    //after coalescing order_11 and order_12 should be empty
+    cr_assert_neq(free_list_is_empty(order_11), 0,
+          "List [%d] contains an unexpected block!", order_11 - ORDER_MIN);
+    cr_assert_neq(free_list_is_empty(order_12), 0,
+          "List [%d] contains an unexpected block!", order_12 - ORDER_MIN);
+    //and order_13 should not be empty
+    cr_assert_eq(free_list_is_empty(order_13), 0,
+         "List [%d] should not be empty!", order_13 - ORDER_MIN);
+}
+
+//test if the bud_realloc set the rsize field right when user requests to bud_realloc a same block
+Test(bud_realloc_suite, realloc_smaller_set_new_rsize, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    void *ptr = bud_malloc(sizeof(long)); // 4 -> 32
+    void *ptr_dup = bud_realloc(ptr, sizeof(long)*2); // 8 -> 32
+
+    cr_assert_not_null(ptr_dup, "bud_realloc returned NULL");
+
+    bud_header *ptr_dup_header = PAYLOAD_TO_HEADER(ptr_dup);
+
+    cr_assert((ptr_dup_header->rsize)==(sizeof(long)*2), "bud_realloc didn't set request size right");
+
+    expect_errno_value(0);
+}
+
+//test if the bud_realloc keeps the original block data
+Test(bud_realloc_suite, realloc_larger_block_data, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+    char *small = bud_malloc(sizeof(int)); // 4 -> 32
+    uint32_t req_size = sizeof(int);
+    //fill up the small with '3'
+    for (int i=0; i<req_size; i++) {
+        small[i] = '3';
+    }
+    char *big = bud_realloc(small, sizeof(int)*16); // 64 -> 128
+    for (int j=0; j<req_size; j++) {
+        cr_assert(big[j]=='3', "bud_realloc didn't copy the original data right");
+    }
+    expect_errno_value(0);
+}
+
+//test if 2 max order block are coalesced
+Test(bud_free_suite, free_max_block, .init = bud_mem_init, .fini = bud_mem_fini) {
+    errno = 0;
+
+    //use order 10 ,11 and 14
+    //need to call bud_sbrk()
+    void *ptr_0 = bud_malloc(512); // 512 -> 1024
+    void *ptr_1 = bud_malloc(1024); // 1024 -> 2048
+    void *ptr_2 = bud_malloc(8192); // 8192 -> 16384
+    uint64_t order_10 = 10; // 2^10 = 1024
+    uint64_t order_11 = 11; // 2^11 = 2048
+    uint64_t order_14 = ORDER_MAX-1; // 2^14 = 16384
+    //free the 1st half max block
+    bud_free(ptr_0);
+    bud_free(ptr_1);
+    //ORDER_MAX should not be empty
+    cr_assert_eq(free_list_is_empty(ORDER_MAX-1), 0,
+         "List [%d] should not be empty!", (ORDER_MAX-1) - ORDER_MIN);
+    //free the 2nd half max block
+    bud_free(ptr_2);
+    //these 2 max blocks should not coalesce
+    //there are 2 order_14 free blocks
+    cr_assert_neq(free_list_heads[order_14-ORDER_MIN].next->next,
+          &free_list_heads[order_14-ORDER_MIN],
+          "A second block is expected in free list #%d!",
+          order_14-ORDER_MIN);
+    //no other order free blocks
+    for (int i=ORDER_MIN; i<(ORDER_MAX-2); i++)
+        cr_assert_neq(free_list_is_empty(i), 0,
+          "List [%d] contains an unexpected block!", i - ORDER_MIN);
+}
