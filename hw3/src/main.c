@@ -36,7 +36,7 @@ int main(int argc, char const *argv[]) {
     // intentional error (errno = EINVAL)
     ptr3 = bud_malloc(20000);
     printf("errno: %d (%s)\n", errno, strerror(errno));
-    
+
     bud_mem_fini();
 
     return EXIT_SUCCESS;

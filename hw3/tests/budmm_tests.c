@@ -447,4 +447,5 @@ Test(bud_free_suite, free_max_block, .init = bud_mem_init, .fini = bud_mem_fini,
     for (int i=ORDER_MIN; i<(ORDER_MAX-2); i++)
         cr_assert_neq(free_list_is_empty(i), 0,
           "List [%d] contains an unexpected block!", i - ORDER_MIN);
+    expect_errno_value(0);
 }

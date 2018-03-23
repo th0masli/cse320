@@ -228,11 +228,6 @@ bud_free_block *split_block(bud_free_block *fblock, uint64_t t_order) {
   uintptr_t right_buddy_address;
   right_buddy_address = left_buddy_address^((uintptr_t)split_size);
   //
-  /*cast to (char*) for pointer arithmetic
-  char *left_buddy_address = (char*) left_buddy_block;
-  char *right_buddy_address;
-  right_buddy_address = left_buddy_address^((char*)split_size);
-  */
   right_buddy_block = (bud_free_block*) right_buddy_address;
   (right_buddy_block->header).order = block_order - 1;
   //mark the right buddy as free
@@ -380,11 +375,6 @@ bud_free_block *coalesce_block(bud_header *freed_block) {
     uintptr_t freed_block_address = (uintptr_t) freed_block;
     buddy_address = freed_block_address^((uintptr_t)block_size);
     //
-    /*cast to (char*) for pointer arithmetic
-    char *buddy_address;
-    char *freed_block_address = (char*) freed_block;
-    buddy_address = freed_block_address^((char*)block_size);
-    */
     buddy = (bud_header*) buddy_address;
     //base case the freed block's buddy is not free
     //or the buddy & the block have different size
