@@ -33,43 +33,46 @@ SESSION *fg_session;              // Current foreground session
  */
 SESSION *session_init(char *path, char *argv[]) {
     for(int i = 0; i < MAX_SESSIONS; i++) {
-	if(sessions[i] == NULL) {
-	    int mfd = posix_openpt(O_RDWR | O_NOCTTY);
-	    if(mfd == -1)
-		return NULL; // No more ptys
-	    unlockpt(mfd);
-	    char *sname = ptsname(mfd);
-	    // Set nonblocking I/O on master side of pty
-	    fcntl(mfd, F_SETFL, O_NONBLOCK);
+    	if(sessions[i] == NULL) {
+    	    int mfd = posix_openpt(O_RDWR | O_NOCTTY); //open a pseudoterminal; O_RDWR for both reading and writing; Do not make this device the controlling terminal for the process
+    	    if(mfd == -1)
+    		    return NULL; // No more ptys
+    	    unlockpt(mfd); // allow access to pseudoterminal
+    	    char *sname = ptsname(mfd);
+    	    // Set nonblocking I/O on master side of pty
+    	    fcntl(mfd, F_SETFL, O_NONBLOCK);
 
-	    SESSION *session = calloc(sizeof(SESSION), 1);
-	    sessions[i] = session;
-	    session->sid = i;
-	    session->vscreen = vscreen_init();
-	    session->ptyfd = mfd;
+    	    SESSION *session = calloc(sizeof(SESSION), 1);
+    	    sessions[i] = session;
+    	    session->sid = i;
+    	    session->vscreen = vscreen_init();
+    	    session->ptyfd = mfd;
 
-	    // Fork process to be leader of new session.
-	    if((session->pid = fork()) == 0) {
-		// Open slave side of pty, create new session,
-		// and set pty as controlling terminal.
-		int sfd = open(sname, O_RDWR);
-		setsid();
-		ioctl(sfd, TIOCSCTTY, 0);
-		dup2(sfd, 2); close(sfd); close(mfd);
+    	    // Fork process to be leader of new session.
+    	    if((session->pid = fork()) == 0) {
+        		// Open slave side of pty, create new session,
+        		// and set pty as controlling terminal.
+        		int sfd = open(sname, O_RDWR);
+        		setsid();
+        		ioctl(sfd, TIOCSCTTY, 0);
+        		dup2(sfd, 2); close(sfd); close(mfd);
 
-		// Set TERM environment variable to match vscreen terminal
-		// emulation capabilities (which currently aren't that great).
-		putenv("TERM=dumb");
+        		// Set TERM environment variable to match vscreen terminal
+        		// emulation capabilities (which currently aren't that great).
+        		putenv("TERM=dumb");
 
-		// Set up stdin/stdout and do exec.
-		// TO BE FILLED IN
-		fprintf(stderr, "EXEC FAILED (did you fill in this part?)\n");
-		exit(1);
-	    }
-	    // Parent drops through
-	    session_setfg(session);
-	    return session;
-	}
+        		// Set up stdin/stdout and do exec.
+        		// TO BE FILLED IN
+            dup2(sfd, 0); //standard input
+            dup2(sfd, 1); //standard output
+            execv(path, argv); //do exec
+        		fprintf(stderr, "EXEC FAILED (did you fill in this part?)\n");
+        		exit(1);
+    	    }
+    	    // Parent drops through
+    	    session_setfg(session);
+    	    return session;
+    	}
     }
     return NULL;  // Session table full.
 }
