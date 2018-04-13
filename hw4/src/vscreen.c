@@ -29,14 +29,16 @@ static void update_line(VSCREEN *vscreen, int l);
  */
 VSCREEN *vscreen_init() {
     VSCREEN *vscreen = calloc(sizeof(VSCREEN), 1);
-    vscreen->num_lines = LINES;
+    //vscreen->num_lines = LINES;
+    //reserve 1 line for the status line
+    vscreen->num_lines = LINES-1;
     vscreen->num_cols = COLS;
     vscreen->cur_line = 0;
     vscreen->cur_col = 0;
     vscreen->lines = calloc(sizeof(char *), vscreen->num_lines);
     vscreen->line_changed = calloc(sizeof(char), vscreen->num_lines);
     for(int i = 0; i < vscreen->num_lines; i++)
-	vscreen->lines[i] = calloc(sizeof(char), vscreen->num_cols);
+	   vscreen->lines[i] = calloc(sizeof(char), vscreen->num_cols);
     return vscreen;
 }
 
@@ -46,11 +48,17 @@ VSCREEN *vscreen_init() {
  */
 void vscreen_show(VSCREEN *vscreen) {
     wclear(main_screen);
+    //fprintf(stderr, "%s\n", *(vscreen->lines));
     for(int l = 0; l < vscreen->num_lines; l++) {
-	if(vscreen->line_changed[l]) {
-	    update_line(vscreen, l);
-	    vscreen->line_changed[l] = 0;
-	}
+        //change every line when vscreen is called
+        update_line(vscreen, l);
+        vscreen->line_changed[l] = 0;
+        /*
+    	if(vscreen->line_changed[l]) {
+    	    update_line(vscreen, l);
+    	    vscreen->line_changed[l] = 0;
+    	}
+        */
     }
     wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
     refresh();
@@ -66,10 +74,10 @@ void vscreen_show(VSCREEN *vscreen) {
  */
 void vscreen_sync(VSCREEN *vscreen) {
     for(int l = 0; l < vscreen->num_lines; l++) {
-	if(vscreen->line_changed[l]) {
-	    update_line(vscreen, l);
-	    vscreen->line_changed[l] = 0;
-	}
+    	if(vscreen->line_changed[l]) {
+    	    update_line(vscreen, l);
+    	    vscreen->line_changed[l] = 0;
+    	}
     }
     wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
     refresh();
@@ -80,12 +88,13 @@ void vscreen_sync(VSCREEN *vscreen) {
  */
 static void update_line(VSCREEN *vscreen, int l) {
     char *line = vscreen->lines[l];
+    //fprintf(stderr, "%s\n", line);
     wmove(main_screen, l, 0);
     wclrtoeol(main_screen);
     for(int c = 0; c < vscreen->num_cols; c++) {
-	char ch = line[c];
-	if(isprint(ch))
-	    waddch(main_screen, line[c]);
+    	char ch = line[c];
+    	if(isprint(ch))
+    	    waddch(main_screen, line[c]);
     }
     wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
     refresh();
@@ -113,10 +122,19 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
 	if(vscreen->cur_col + 1 < vscreen->num_cols)
 	    vscreen->cur_col++;
     } else if(ch == '\n') {
-	l = vscreen->cur_line = (vscreen->cur_line + 1) % vscreen->num_lines;
-	memset(vscreen->lines[l], 0, vscreen->num_cols);
+        //do scrolling
+        if ((vscreen->cur_line + 1) / vscreen->num_lines > 0) {
+            scroll(main_screen);
+            //keep the line at the bottom
+            l = vscreen->cur_line = l;
+        } else {
+            //go to the next line
+            l = vscreen->cur_line = (vscreen->cur_line + 1) % vscreen->num_lines;
+        }
+        //clear the line
+        memset(vscreen->lines[l], 0, vscreen->num_cols);
     } else if(ch == '\r') {
-	vscreen->cur_col = 0;
+	   vscreen->cur_col = 0;
     }
     vscreen->line_changed[l] = 1;
 }
@@ -126,4 +144,11 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
  */
 void vscreen_fini(VSCREEN *vscreen) {
     // TO BE FILLED IN
+    //free all the calloc
+    for(int i = 0; i < vscreen->num_lines; i++)
+        free(vscreen->lines[i]);
+    free(vscreen->lines);
+    free(vscreen->line_changed);
+    free(vscreen);
+
 }

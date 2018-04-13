@@ -10,6 +10,11 @@
  */
 #define COMMAND_ESCAPE 0x1   // CTRL-A
 
+//bottom window for status line
+WINDOW *status_line;
+
 int mainloop(void);
 void do_command(void);
 void do_other_processing(void);
+
+void set_status(char *status);

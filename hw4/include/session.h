@@ -27,4 +27,6 @@ int session_putc(SESSION *session, char c);
 void session_kill(SESSION *session);
 void session_fini(SESSION *session);
 
+int find_bg_session(int fg_sid);
+
 #endif

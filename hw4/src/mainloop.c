@@ -32,15 +32,16 @@ int mainloop(void) {
 	if(c != ERR) {
 	    // If command escape -- process command
 	    if(c == COMMAND_ESCAPE) {
-		// Temporarily disable non-blocking I/O to make it
-		// easier to collect the rest of the command.
-		nodelay(main_screen, FALSE);
-		do_command();
-		// Restore non-blocking I/O before returing.
-		nodelay(main_screen, TRUE);
+			// Temporarily disable non-blocking I/O to make it
+			// easier to collect the rest of the command.
+			nodelay(main_screen, FALSE);
+			do_command();
+			// Restore non-blocking I/O before returing.
+			nodelay(main_screen, TRUE);
 	    } else {
-		// Write char to pty of foreground session -- as if typed.
-		session_putc(fg_session, c);
+			// Write char to pty of foreground session -- as if typed.
+		    //set_status("I will do session put char");
+			session_putc(fg_session, c);
 	    }
 	}
 
@@ -71,6 +72,7 @@ int mainloop(void) {
 			session->error = 1;
 		    } else {
 			for(char *bp = buf; n > 0; n--) {
+				//set_status("I will do vscreen put char");
 			    vscreen_putc(session->vscreen, *bp++);
 			    vscreen_sync(session->vscreen);
 			}

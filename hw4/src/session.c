@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/signal.h>
 
 #include "session.h"
 
@@ -33,12 +34,17 @@ SESSION *fg_session;              // Current foreground session
  */
 SESSION *session_init(char *path, char *argv[]) {
     for(int i = 0; i < MAX_SESSIONS; i++) {
+        //find a space in session table to assign a id to the new session
     	if(sessions[i] == NULL) {
-    	    int mfd = posix_openpt(O_RDWR | O_NOCTTY); //open a pseudoterminal; O_RDWR for both reading and writing; Do not make this device the controlling terminal for the process
+            /*
+            creates the master side of the pty.
+            It opens the device /dev/ptmx to get the file descriptor belonging to the master side.
+            */
+    	    int mfd = posix_openpt(O_RDWR | O_NOCTTY);
     	    if(mfd == -1)
     		    return NULL; // No more ptys
-    	    unlockpt(mfd); // allow access to pseudoterminal
-    	    char *sname = ptsname(mfd);
+    	    unlockpt(mfd); // allow access to pseudoterminal; unlock the master
+    	    char *sname = ptsname(mfd); // get the file name of the master
     	    // Set nonblocking I/O on master side of pty
     	    fcntl(mfd, F_SETFL, O_NONBLOCK);
 
@@ -50,12 +56,15 @@ SESSION *session_init(char *path, char *argv[]) {
 
     	    // Fork process to be leader of new session.
     	    if((session->pid = fork()) == 0) {
+                //printw("A new session was created: %d", session->sid);
         		// Open slave side of pty, create new session,
         		// and set pty as controlling terminal.
         		int sfd = open(sname, O_RDWR);
         		setsid();
         		ioctl(sfd, TIOCSCTTY, 0);
-        		dup2(sfd, 2); close(sfd); close(mfd);
+                //set up stdin/stdout/stderr
+        		dup2(sfd, 0); dup2(sfd, 1); dup2(sfd, 2);
+                close(sfd); close(mfd);
 
         		// Set TERM environment variable to match vscreen terminal
         		// emulation capabilities (which currently aren't that great).
@@ -63,9 +72,7 @@ SESSION *session_init(char *path, char *argv[]) {
 
         		// Set up stdin/stdout and do exec.
         		// TO BE FILLED IN
-            dup2(sfd, 0); //standard input
-            dup2(sfd, 1); //standard output
-            execv(path, argv); //do exec
+                execvp(path, argv); //do exec
         		fprintf(stderr, "EXEC FAILED (did you fill in this part?)\n");
         		exit(1);
     	    }
@@ -112,6 +119,15 @@ int session_putc(SESSION *session, char c) {
  */
 void session_kill(SESSION *session) {
     // TO BE FILLED IN
+    //send the kill signal
+    int pid_specified = session->pid;
+    int session_id = session->sid;
+    fprintf(stderr, "Try to kill a session with process id: %d\n", pid_specified);
+    kill(pid_specified, SIGKILL);
+    //after kill should set session in list to null and free it
+    session_fini(session);
+    //mark as free
+    sessions[session_id] = NULL;
 }
 
 /*
@@ -124,4 +140,22 @@ void session_kill(SESSION *session) {
  */
 void session_fini(SESSION *session) {
     // TO BE FILLED IN
+    //close the file descriptor
+    close(session->ptyfd);
+    //finish the virtual screen
+    vscreen_fini(session->vscreen);
+    //free the calloc session
+    free(session);
+}
+
+
+//find a background session in order to replace the foreground session going to be killed
+int find_bg_session(int fg_sid) {
+    int i;
+    for (i=0; i<MAX_SESSIONS; i++) {
+        if (i != fg_sid && sessions[i] != NULL) {
+            return i;
+        }
+    }
+    return -1; //no session in the background
 }
