@@ -62,7 +62,8 @@ void vscreen_show(VSCREEN *vscreen) {
     }
     if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
         exit(EXIT_FAILURE);
-    if (refresh() == ERR)
+    //if (refresh() == ERR)
+    if (wrefresh(main_screen) == ERR)
         exit(EXIT_FAILURE);
 }
 
@@ -83,7 +84,8 @@ void vscreen_sync(VSCREEN *vscreen) {
     }
     if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
         exit(EXIT_FAILURE);
-    if (refresh() == ERR)
+    //if (refresh() == ERR)
+    if (wrefresh(main_screen) == ERR)
         exit(EXIT_FAILURE);
 }
 
@@ -103,7 +105,8 @@ static void update_line(VSCREEN *vscreen, int l) {
     }
     if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
         exit(EXIT_FAILURE);
-    if (refresh() == ERR)
+    //if (refresh() == ERR)
+    if (wrefresh(main_screen) == ERR)
         exit(EXIT_FAILURE);
 }
 

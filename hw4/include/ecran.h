@@ -22,3 +22,10 @@ void sigchld_handler(int sig);
 char *concat_str_space(char *str0, char *str1);
 void failure_fini(void);
 
+//EXTRA CREDIT
+//ENHANCED_STATUS
+void set_session_num();
+void display_time();
+//alarm signal handler
+void sigalrm_handler(int sig);
+

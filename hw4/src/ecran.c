@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <time.h>
 
 #include "ecran.h"
 
@@ -22,6 +23,7 @@ static void curses_fini(void);
 static void finalize(void);
 
 static char *init_cmd = " (ecran session)"; //initial command for starting the pty
+volatile sig_atomic_t set_flag = 0; //alarm handler flag
 
 int main(int argc, char *argv[]) {
     char *file_name;
@@ -136,7 +138,8 @@ static void curses_init(void) {
 
     nodelay(main_screen, TRUE);  // Set non-blocking I/O on input.
     wclear(main_screen);         // Clear the screen.
-    refresh();                   // Make changes visible.
+    //refresh();                   // Make changes visible
+    wrefresh(main_screen);
 
     //Arrange for the bottom line of the terminal window to be reserved as a status line
     status_line = newwin(1, COLS, LINES-1, 0);
@@ -280,6 +283,10 @@ void do_other_processing() {
     // TO BE FILLED IN
     //reap the zombies
     signal(SIGCHLD, sigchld_handler);
+    //display time in the bottom right corner of status line
+    set_session_num();
+    display_time();
+    wrefresh(main_screen);
 }
 
 
@@ -320,4 +327,54 @@ char *concat_str_space(char *str0, char *str1) {
     str0[i] = '\0';
 
     return str0;
+}
+
+
+//EXTRA CREDIT
+//ENHANCED_STATUS
+//display time
+//alarm signal handler
+void sigalrm_handler(int sig) {
+    set_flag = 1;
+}
+
+//display time and update every second
+void display_time() {
+    time_t timer;
+    char uniform_tm[10]; //HH:MM:SS
+    struct tm *tm_info;
+    if (set_flag) {
+        time(&timer);
+        tm_info = localtime(&timer);
+        strftime(uniform_tm, 10, "%H:%M:%S", tm_info);
+        fprintf(stderr, "The current time is: %s\n", uniform_tm);
+        mvwaddstr(status_line, 0, COLS-21, uniform_tm);
+        wrefresh(status_line);        // Make changes visible by refresh
+        set_flag = 0;
+        alarm(1);
+    }
+}
+
+//number of existing sessions
+void set_session_num() {
+    int session_num = 0;
+    char session_num_str[6];
+    //set the default text
+    char *title = "#sessions:";
+    for (int j=0; j<strlen(title); j++)
+        mvwaddch(status_line, 0, COLS-12+j, title[j]);
+    //get the current existing number of sessions
+    for (int i=0; i<MAX_SESSIONS; i++) {
+        if (sessions[i] != NULL)
+            session_num++;
+    }
+    sprintf(session_num_str, "%d", session_num);
+    //set_status(session_num_str);
+    /*
+    int num_len = strlen(session_num_str);
+    for (int i=0; i<num_len; i++)
+        mvwaddch(status_line, 0, COLS-2+i, session_num_str[i]);
+    */
+    mvwaddstr(status_line, 0, COLS-2, session_num_str);
+    wrefresh(status_line);        // Make changes visible by refresh
 }
