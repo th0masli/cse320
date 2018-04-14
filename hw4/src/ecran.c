@@ -128,6 +128,8 @@ static void curses_init(void) {
     noecho();                    // Don't echo -- let the pty handle it.
     //main_screen = stdscr;
     main_screen = newwin(LINES-1, COLS, 0, 0);
+    if (main_screen == NULL)
+        exit(EXIT_FAILURE);
 
     scrollok(main_screen, TRUE); // allow scrolling
     //keypad(main_screen, TRUE); // capture special keystrokes
@@ -147,7 +149,20 @@ static void curses_init(void) {
  * screen contents.
  */
 void curses_fini(void) {
+    //delete the windows
+    /*
+    delwin(main_screen);
+    delwin(status_line);
     endwin();
+    */
+    //if (delwin(main_screen) == ERR || delwin(status_line) == ERR || endwin() == ERR)
+      //  exit(EXIT_FAILURE);
+    if (delwin(main_screen) == ERR)
+        exit(EXIT_FAILURE);
+    else if(delwin(status_line) == ERR)
+        exit(EXIT_FAILURE);
+    else if(endwin() == ERR)
+        exit(EXIT_FAILURE);
 }
 
 /*

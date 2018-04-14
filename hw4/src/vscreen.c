@@ -60,8 +60,10 @@ void vscreen_show(VSCREEN *vscreen) {
     	}
         */
     }
-    wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
-    refresh();
+    if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    if (refresh() == ERR)
+        exit(EXIT_FAILURE);
 }
 
 /*
@@ -79,8 +81,10 @@ void vscreen_sync(VSCREEN *vscreen) {
     	    vscreen->line_changed[l] = 0;
     	}
     }
-    wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
-    refresh();
+    if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    if (refresh() == ERR)
+        exit(EXIT_FAILURE);
 }
 
 /*
@@ -89,15 +93,18 @@ void vscreen_sync(VSCREEN *vscreen) {
 static void update_line(VSCREEN *vscreen, int l) {
     char *line = vscreen->lines[l];
     //fprintf(stderr, "%s\n", line);
-    wmove(main_screen, l, 0);
+    if (wmove(main_screen, l, 0) == ERR)
+        exit(EXIT_FAILURE);
     wclrtoeol(main_screen);
     for(int c = 0; c < vscreen->num_cols; c++) {
     	char ch = line[c];
     	if(isprint(ch))
     	    waddch(main_screen, line[c]);
     }
-    wmove(main_screen, vscreen->cur_line, vscreen->cur_col);
-    refresh();
+    if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    if (refresh() == ERR)
+        exit(EXIT_FAILURE);
 }
 
 /*
@@ -124,7 +131,8 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
     } else if(ch == '\n') {
         //do scrolling
         if ((vscreen->cur_line + 1) / vscreen->num_lines > 0) {
-            scroll(main_screen);
+            if (scroll(main_screen) == ERR)
+                exit(EXIT_FAILURE);
             //keep the line at the bottom
             l = vscreen->cur_line = l;
         } else {
