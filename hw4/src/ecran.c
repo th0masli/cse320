@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <string.h>
 
 #include "ecran.h"
 
@@ -20,27 +21,46 @@ static void curses_init(void);
 static void curses_fini(void);
 static void finalize(void);
 
+static char *init_cmd = " (ecran session)"; //initial command for starting the pty
 
 int main(int argc, char *argv[]) {
-    char option;
-    for (int i=0; i<optind; i++) {
-        if((option=getopt(argc, argv, "o:")) != -1) {
-            switch(option) {
-                //debug helper
-                case 'o': {
-                    char* file_name = optarg;
-                    //allow read and write
-                    //mode_t mode = S_IROTH | S_IWOTH;
-                    mode_t mode = S_IRWXU;
-                    int monitor_fdp = open(file_name, O_RDWR | O_CREAT | O_TRUNC, mode); //
-                    // dup to stderr
-                    dup2(monitor_fdp, 2); close(monitor_fdp);
-                }
+    char *file_name;
+    char *extra_cmd = NULL;
+    //there is -o filename
+    if (argc > 2 && strcmp(argv[1], "-o") == 0) {
+        //do -o file
+        file_name = argv[2];
+        //allow read and write
+        //mode_t mode = S_IROTH | S_IWOTH;
+        mode_t mode = S_IRWXU;
+        int monitor_fdp = open(file_name, O_RDWR | O_CREAT | O_TRUNC, mode);
+        // dup to stderr
+        dup2(monitor_fdp, 2); close(monitor_fdp);
+        //concate extra commnad; starting from arg[3]
+        if (argv[3]) {
+            extra_cmd = argv[3];
+            for (int i=4; i<argc; i++) {
+                extra_cmd = concat_str_space(extra_cmd, argv[i]);
             }
         }
     }
+    //no -o filename
+    else {
+        //concate extra commnad; starting from arg[1]
+        if (argv[1]) {
+            extra_cmd = argv[1];
+            for (int j=2; j<argc; j++) {
+                extra_cmd = concat_str_space(extra_cmd, argv[j]);
+            }
+        }
+    }
+    //check if the init command is NULL
+    if (extra_cmd != NULL)
+        init_cmd = extra_cmd;
+    //fprintf(stderr, "The initial command is: %s\n", init_cmd);
+    //fprintf(stderr, "The extra command is: %s\n", extra_cmd);
     initialize();
-    mainloop(); //keep loop waiting for user; write the user input tu foreground session
+    mainloop(); //keep loop waiting for user; write the user input to foreground session
     // NOT REACHED
 }
 
@@ -53,7 +73,8 @@ static void initialize() {
     char *path = getenv("SHELL");
     if(path == NULL)
 	   path = "/bin/bash";
-    char *argv[2] = { " (ecran session)", NULL };
+    //char *argv[2] = { " (ecran session)", NULL };
+    char *argv[2] = { init_cmd, NULL };
     session_init(path, argv); //init the session
 }
 
@@ -67,8 +88,9 @@ static void initialize() {
  */
 static void finalize(void) {
     // REST TO BE FILLED IN
+    int i;
     fg_session = NULL;
-    for (int i; i<MAX_SESSIONS; i++) {
+    for (i=0; i<MAX_SESSIONS; i++) {
         if (sessions[i] != NULL) {
             session_fini(sessions[i]);
             sessions[i] = NULL;
@@ -77,6 +99,22 @@ static void finalize(void) {
     curses_fini();
     exit(EXIT_SUCCESS);
 }
+
+/*
+//maybe need a finalize for the EXIT_FAILURE
+void failure_fini(void) {
+    int i;
+    fg_session = NULL;
+    for (i=0; i<MAX_SESSIONS; i++) {
+        if (sessions[i] != NULL) {
+            session_fini(sessions[i]);
+            sessions[i] = NULL;
+        }
+    }
+    curses_fini();
+    exit(EXIT_FAILURE);
+}
+*/
 
 /*
  * Helper method to initialize the screen for use with curses processing.
@@ -202,14 +240,6 @@ void do_command() {
                     }
                 }
                 session_kill(session_specified);
-                /*
-                fprintf(stderr, "Try to kill a session with process id: %d\n", pid_specified);
-                kill(pid_specified, SIGKILL);
-                //after kill should set session in list to null and free it
-                //try to wrap a function to do it
-                session_fini(session_specified);
-                sessions[session_id] = NULL;
-                */
             }else {
                 set_status("No such session"); //session specified hasn't been created yet
                 flash();
@@ -233,7 +263,8 @@ void do_command() {
  */
 void do_other_processing() {
     // TO BE FILLED IN
-
+    //reap the zombies
+    signal(SIGCHLD, sigchld_handler);
 }
 
 
@@ -244,10 +275,34 @@ void set_status(char *status) {
     wrefresh(status_line);        // Make changes visible by refresh
 }
 
-//should not use a wait; it will go infinitly loop
+//specify the flag WNOHANG
 //set handler for SIGCHLD
 void sigchld_handler(int sig) {
     while(waitpid(-1, 0, WNOHANG) > 0)
         ;
     return;
+}
+
+//string contatenation with space between the strings
+char *concat_str_space(char *str0, char *str1) {
+    int i, j;
+
+    i = 0;
+    while (str0[i] != '\0') {
+      i++;
+    }
+    //change the \0 to space
+    str0[i] = ' ';
+    i++;
+
+    j = 0;
+    while (str1[j] != '\0') {
+      str0[i] = str1[j];
+      i++;
+      j++;
+    }
+
+    str0[i] = '\0';
+
+    return str0;
 }

@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/signal.h>
+#include <string.h>
 
 #include "session.h"
 
@@ -70,9 +71,18 @@ SESSION *session_init(char *path, char *argv[]) {
         		// emulation capabilities (which currently aren't that great).
         		putenv("TERM=dumb");
 
+                //do the initial command in the child process
+                if (strcmp(argv[0], " (new session)") && strcmp(argv[0], " (ecran session)"))
+                    system(argv[0]);
+
         		// Set up stdin/stdout and do exec.
         		// TO BE FILLED IN
                 execvp(path, argv); //do exec
+                if (execvp(path, argv) == -1) {
+                    //finalize for exit failure
+                    //failure_fini();
+                    exit(EXIT_FAILURE);
+                }
         		fprintf(stderr, "EXEC FAILED (did you fill in this part?)\n");
         		exit(1);
     	    }

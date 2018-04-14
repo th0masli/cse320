@@ -18,3 +18,7 @@ void do_command(void);
 void do_other_processing(void);
 
 void set_status(char *status);
+void sigchld_handler(int sig);
+char *concat_str_space(char *str0, char *str1);
+void failure_fini(void);
+
