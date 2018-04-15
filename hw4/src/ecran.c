@@ -62,6 +62,9 @@ int main(int argc, char *argv[]) {
     //fprintf(stderr, "The initial command is: %s\n", init_cmd);
     //fprintf(stderr, "The extra command is: %s\n", extra_cmd);
     initialize();
+    //for the time display
+    signal(SIGALRM, sigalrm_handler); // install alarm signal handler
+    alarm(1); // alarm schedule is 1s
     mainloop(); //keep loop waiting for user; write the user input to foreground session
     // NOT REACHED
 }
@@ -92,6 +95,7 @@ static void finalize(void) {
     // REST TO BE FILLED IN
     int i;
     fg_session = NULL;
+    right_session = NULL;
     for (i=0; i<MAX_SESSIONS; i++) {
         if (sessions[i] != NULL) {
             session_fini(sessions[i]);
@@ -130,6 +134,7 @@ static void curses_init(void) {
     noecho();                    // Don't echo -- let the pty handle it.
     //main_screen = stdscr;
     main_screen = newwin(LINES-1, COLS, 0, 0);
+    //main_screen = newwin(LINES-1, COLS/2, 0, 0);
     if (main_screen == NULL)
         exit(EXIT_FAILURE);
 
@@ -160,6 +165,8 @@ void curses_fini(void) {
     */
     //if (delwin(main_screen) == ERR || delwin(status_line) == ERR || endwin() == ERR)
       //  exit(EXIT_FAILURE);
+    if (num_screen == 2 && right_screen != NULL)
+        delwin(right_screen);
     if (delwin(main_screen) == ERR)
         exit(EXIT_FAILURE);
     else if(delwin(status_line) == ERR)
@@ -267,6 +274,10 @@ void do_command() {
             flash();
         }
     }
+    //split screen
+    else if(c == 's') {
+        split_screen();
+    }
     else {
         set_status("No such command");
         // OTHER COMMANDS TO BE IMPLEMENTED
@@ -286,6 +297,10 @@ void do_other_processing() {
     //display time in the bottom right corner of status line
     set_session_num();
     display_time();
+    if (num_screen == 2 && right_screen != NULL && right_session != NULL) {
+        //need to syncronize the virtual screen corresponding to the right screen
+        vscreen_show_right(right_session->vscreen);
+    }
     wrefresh(main_screen);
 }
 
@@ -331,6 +346,78 @@ char *concat_str_space(char *str0, char *str1) {
 
 
 //EXTRA CREDIT
+//ANSI_EMULATION
+void ansi_emulator() {
+
+}
+
+
+//SPLIT_SCREEN
+void split_screen() {
+    //flash();
+    //split 1 main screen to 2
+    if (num_screen == 1) {
+        //delete the main screen first
+        delwin(main_screen);
+        //create the 2 sides terminal screen; and set left as main screen
+        main_screen = newwin(LINES-1, COLS/2, 0, 0);
+        right_screen = newwin(LINES-1, COLS/2, 0, COLS/2);
+        //set left screen as main screen
+        //main_screen = left_screen;
+        if (main_screen == NULL || right_screen == NULL)
+            exit(EXIT_FAILURE);
+
+        scrollok(main_screen, TRUE); scrollok(right_screen, TRUE); // allow scrolling
+        //keypad(main_screen, TRUE); // capture special keystrokes
+        nodelay(main_screen, TRUE); nodelay(right_screen, TRUE);   // set non-blocking I/O on input.
+        wclear(main_screen); wclear(right_screen);                 // clear the screen.
+        wrefresh(main_screen); wrefresh(right_screen);
+        //set global var num_screen to 2
+        num_screen = 2;
+        //resize the virtual screens
+        resize_vscreens();
+        //show the fg session on the left and right screen
+        vscreen_show(fg_session->vscreen);
+        SESSION *cur_session = sessions[fg_session->sid];
+        session_set_right(cur_session);
+        vscreen_show_right(right_session->vscreen);
+    }
+    //combine 2 splitted screen to 1 main screen
+    else if (num_screen == 2) {
+        //delete the 2 screens
+        delwin(main_screen); delwin(right_screen);
+        right_session = NULL;
+        main_screen = newwin(LINES-1, COLS, 0, 0);
+        if (main_screen == NULL)
+            exit(EXIT_FAILURE);
+        scrollok(main_screen, TRUE); // allow scrolling
+        //keypad(main_screen, TRUE); // capture special keystrokes
+        nodelay(main_screen, TRUE);  // Set non-blocking I/O on input.
+        wclear(main_screen);         // Clear the screen.
+        wrefresh(main_screen);       // Make changes visible
+        //set global var num_screen to 1
+        num_screen = 1;
+        //resize the vscreens
+        resize_vscreens();
+        vscreen_show(fg_session->vscreen);
+    }
+}
+
+
+//resize all the vscreen when type split
+void resize_vscreens() {
+    SESSION *cur_session;
+    VSCREEN *cur_vscreen;
+    for (int i=0; i<MAX_SESSIONS; i++) {
+        cur_session = sessions[i];
+        if (cur_session != NULL) {
+            cur_vscreen = cur_session->vscreen;
+            vscreen_resize(cur_vscreen);
+        }
+    }
+}
+
+
 //ENHANCED_STATUS
 //display time
 //alarm signal handler
@@ -347,7 +434,7 @@ void display_time() {
         time(&timer);
         tm_info = localtime(&timer);
         strftime(uniform_tm, 10, "%H:%M:%S", tm_info);
-        fprintf(stderr, "The current time is: %s\n", uniform_tm);
+        //fprintf(stderr, "The current time is: %s\n", uniform_tm);
         mvwaddstr(status_line, 0, COLS-21, uniform_tm);
         wrefresh(status_line);        // Make changes visible by refresh
         set_flag = 0;
@@ -378,3 +465,5 @@ void set_session_num() {
     mvwaddstr(status_line, 0, COLS-2, session_num_str);
     wrefresh(status_line);        // Make changes visible by refresh
 }
+
+//Help Screen

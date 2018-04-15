@@ -27,9 +27,6 @@ static int setfds(fd_set *fds);
 int mainloop(void) {
     struct timeval tv;
     fd_set fds;
-    //for the time display
-    signal(SIGALRM, sigalrm_handler); // install alarm signal handler
-    alarm(1); // alarm schedule is 1s
     while(1) {
 	int c = wgetch(main_screen);
 	if(c != ERR) {

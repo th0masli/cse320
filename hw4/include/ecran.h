@@ -23,6 +23,12 @@ char *concat_str_space(char *str0, char *str1);
 void failure_fini(void);
 
 //EXTRA CREDIT
+//ANSI_EMULATION
+void ansi_emulator();
+//SPLIT_SCREEN
+void split_screen();
+//resize all the vscreen when type split
+void resize_vscreens();
 //ENHANCED_STATUS
 void set_session_num();
 void display_time();

@@ -12,6 +12,10 @@
  */
 
 WINDOW *main_screen;
+//right screen for the split mode
+WINDOW *right_screen = NULL;
+//number of screens either 1 or 2
+int num_screen = 1; //by default there is only 1 screen
 
 struct vscreen {
     int num_lines;
@@ -23,6 +27,7 @@ struct vscreen {
 };
 
 static void update_line(VSCREEN *vscreen, int l);
+static void update_line_right(VSCREEN *vscreen, int l); //update line for right screen
 
 /*
  * Create a new virtual screen of the same size as the physical screen.
@@ -33,6 +38,8 @@ VSCREEN *vscreen_init() {
     //reserve 1 line for the status line
     vscreen->num_lines = LINES-1;
     vscreen->num_cols = COLS;
+    //halve the COLS when first type split
+    //vscreen->num_cols = COLS/num_screen;
     vscreen->cur_line = 0;
     vscreen->cur_col = 0;
     vscreen->lines = calloc(sizeof(char *), vscreen->num_lines);
@@ -60,6 +67,7 @@ void vscreen_show(VSCREEN *vscreen) {
     	}
         */
     }
+    //fprintf(stderr, "The current cols for a virtual screens is: %d\n", vscreen->num_cols);
     if (wmove(main_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
         exit(EXIT_FAILURE);
     //if (refresh() == ERR)
@@ -162,4 +170,52 @@ void vscreen_fini(VSCREEN *vscreen) {
     free(vscreen->line_changed);
     free(vscreen);
 
+}
+
+
+//resize the specified vscreen when type split
+void vscreen_resize(VSCREEN *vscreen) {
+    //resize the vscreens to fit the 2 screen mode
+    if (num_screen == 2) {
+        vscreen->num_cols = COLS/num_screen;
+    }
+    //resize the vscreens to fit the original main screen
+    else if (num_screen == 1) {
+        vscreen->num_cols = COLS;
+    }
+}
+
+//show virtual screen on a specific screen
+void vscreen_show_right(VSCREEN *vscreen) {
+    wclear(right_screen);
+    for(int l = 0; l < vscreen->num_lines; l++) {
+        //change every line when vscreen is called
+        update_line_right(vscreen, l);
+        vscreen->line_changed[l] = 0;
+    }
+    //fprintf(stderr, "The current cols for a virtual screens is: %d\n", vscreen->num_cols);
+    if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    //if (refresh() == ERR)
+    if (wrefresh(right_screen) == ERR)
+        exit(EXIT_FAILURE);
+}
+
+//update line for right screen
+static void update_line_right(VSCREEN *vscreen, int l) {
+    char *line = vscreen->lines[l];
+    //fprintf(stderr, "%s\n", line);
+    if (wmove(right_screen, l, 0) == ERR)
+        exit(EXIT_FAILURE);
+    wclrtoeol(right_screen);
+    for(int c = 0; c < vscreen->num_cols; c++) {
+        char ch = line[c];
+        if(isprint(ch))
+            waddch(right_screen, line[c]);
+    }
+    if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    //if (refresh() == ERR)
+    if (wrefresh(right_screen) == ERR)
+        exit(EXIT_FAILURE);
 }

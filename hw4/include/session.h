@@ -19,6 +19,7 @@ typedef struct session SESSION;
 #define MAX_SESSIONS 10
 extern SESSION *sessions[];
 extern SESSION *fg_session;
+extern SESSION *right_session;
 
 SESSION *session_init(char *path, char *argv[]);
 void session_setfg(SESSION *session);
@@ -28,5 +29,6 @@ void session_kill(SESSION *session);
 void session_fini(SESSION *session);
 
 int find_bg_session(int fg_sid);
+void session_set_right(SESSION *session);
 
 #endif

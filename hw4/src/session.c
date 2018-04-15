@@ -27,6 +27,7 @@
 
 SESSION *sessions[MAX_SESSIONS];  // Table of existing sessions
 SESSION *fg_session;              // Current foreground session
+SESSION *right_session;           // current session displayed on the right screen
 
 /*
  * Initialize a new session whose session leader runs a specified command.
@@ -169,4 +170,9 @@ int find_bg_session(int fg_sid) {
         }
     }
     return -1; //no session in the background
+}
+
+//set the session as the right session
+void session_set_right(SESSION *session) {
+    right_session = session;
 }
