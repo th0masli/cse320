@@ -25,7 +25,9 @@ static void finalize(void);
 static char *init_cmd = " (ecran session)"; //initial command for starting the pty
 volatile sig_atomic_t set_flag = 1; //alarm handler flag
 char act_sessions[MAX_SESSIONS+9]; //array for active sessions
+//global variables for help screen
 int help_mode = 0;
+VSCREEN *help_screen = NULL;
 
 int main(int argc, char *argv[]) {
     char *file_name;
@@ -103,6 +105,11 @@ static void finalize(void) {
             session_fini(sessions[i]);
             sessions[i] = NULL;
         }
+    }
+    //finalize the helper screen
+    if (help_screen != NULL) {
+        vscreen_fini(help_screen);
+        help_screen = NULL;
     }
     curses_fini();
     exit(EXIT_SUCCESS);
@@ -489,25 +496,29 @@ void set_session_num() {
 
 //Help Screen
 void display_help() {
-    VSCREEN *help_screen;
-    help_screen = vscreen_init();
-    int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
-    for (int i=0; i<msg_len; i++) {
-        memset(help_screen->lines[i], 0, help_screen->num_cols);
-        strcat(help_screen->lines[i], help_msg[i]);
-        help_screen->line_changed[i] = 1;
-    }
-    //sessions currently active
-    active_sessions();
-    for (int j=0; j<(MAX_SESSIONS+9); j++) {
-        //fprintf(stderr, "%d\n", act_sessions[j]);
-        help_screen->lines[msg_len-2][j+17] = act_sessions[j];
-    }
-
     if (help_mode == 1) {
+        int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
+        //if (help_screen == NULL) {
+            help_screen = vscreen_init();
+            for (int i=0; i<msg_len; i++) {
+                memset(help_screen->lines[i], 0, help_screen->num_cols);
+                strcat(help_screen->lines[i], help_msg[i]);
+                help_screen->line_changed[i] = 1;
+            }
+        //}
+        //sessions currently active
+        active_sessions();
+        for (int j=0; j<(MAX_SESSIONS+9); j++) {
+            //fprintf(stderr, "%d\n", act_sessions[j]);
+            help_screen->lines[msg_len-2][j+17] = act_sessions[j];
+        }
         vscreen_sync(help_screen);
     }
     else if (help_mode == 0) {
+        if (help_screen != NULL) {
+            vscreen_fini(help_screen);
+            help_screen = NULL;
+        }
         vscreen_show(fg_session->vscreen);
         help_mode = 2;
     }
