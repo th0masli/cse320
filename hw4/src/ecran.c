@@ -492,10 +492,21 @@ void display_help() {
     //make a copy of terminal screen of the foreground session
     VSCREEN *help_screen;
     help_screen = vscreen_init();
-    int msg_len = sizeof(helpMSG)/sizeof(helpMSG[0]);
+    char *help_msg[] = {"Terminal Multiplexer",
+                        "by Yao Li",
+                        "CTRL-A        COMMAND_ESCAPE",
+                        "CTRL-A n      Create new virtual termin session",
+                        "CTRL-A num    Switch between terminal sessions; num is the session number",
+                        "CTRL-A k num  Kill terminal session with ID num",
+                        "CTRL-A s      Split screen mode; type again to revert back",
+                        "CTRL-A h      Display this help page",
+                        "CTRL-A q      Exit the program",
+                        "Active sessions: ",
+                        "[ESC] exit this page"};
+    int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
     for (int i=0; i<msg_len; i++) {
         memset(help_screen->lines[i], 0, help_screen->num_cols);
-        strcat(help_screen->lines[i], helpMSG[i]);
+        strcat(help_screen->lines[i], help_msg[i]);
         help_screen->line_changed[i] = 1;
     }
     //sessions currently active
