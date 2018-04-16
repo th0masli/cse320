@@ -38,8 +38,6 @@ VSCREEN *vscreen_init() {
     //reserve 1 line for the status line
     vscreen->num_lines = LINES-1;
     vscreen->num_cols = COLS;
-    //halve the COLS when first type split
-    //vscreen->num_cols = COLS/num_screen;
     vscreen->cur_line = 0;
     vscreen->cur_col = 0;
     vscreen->lines = calloc(sizeof(char *), vscreen->num_lines);
@@ -182,7 +180,6 @@ void vscreen_fini(VSCREEN *vscreen) {
     free(vscreen);
 
 }
-
 
 //resize the specified vscreen when type split
 void vscreen_resize(VSCREEN *vscreen) {

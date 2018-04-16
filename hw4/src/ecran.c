@@ -291,7 +291,8 @@ void do_command() {
     }
     //split screen
     else if(c == 's') {
-        split_screen();
+        if (help_mode != 1)
+            split_screen();
     }
     //help screen
     else if(c == 'h') {
@@ -301,6 +302,14 @@ void do_command() {
         //display_help();
         set_status("Help Screen");
     }
+    /*
+    //clear screen
+    else if(c == 'c') {
+        flash();
+        //vscreen_show(fg_session->vscreen);
+        //set_status("screen cleared");
+    }
+    */
     else {
         set_status("No such command");
         // OTHER COMMANDS TO BE IMPLEMENTED
