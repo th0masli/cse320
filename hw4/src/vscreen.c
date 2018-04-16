@@ -144,6 +144,10 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
         if ((vscreen->cur_line + 1) / vscreen->num_lines > 0) {
             if (scroll(main_screen) == ERR)
                 exit(EXIT_FAILURE);
+            if (num_screen == 2) {
+                if (scroll(right_screen) == ERR)
+                    exit(EXIT_FAILURE);
+            }
             //keep the line at the bottom
             l = vscreen->cur_line = l;
         } else {
@@ -156,6 +160,11 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
 	   vscreen->cur_col = 0;
     } else if(ch == '\a') {
         flash();
+    }
+    //back space
+    else if(ch == '\b') {
+        vscreen->lines[l][c-1] = '\0';
+        vscreen->cur_col--;
     }
     vscreen->line_changed[l] = 1;
 }
@@ -208,7 +217,7 @@ void vscreen_sync_right(VSCREEN *vscreen) {
     for(int l = 0; l < vscreen->num_lines; l++) {
         if(vscreen->line_changed[l]) {
             update_line_right(vscreen, l);
-            vscreen->line_changed[l] = 0;
+            //vscreen->line_changed[l] = 0;
         }
     }
     if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)

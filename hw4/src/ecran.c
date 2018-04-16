@@ -26,7 +26,7 @@ static char *init_cmd = " (ecran session)"; //initial command for starting the p
 volatile sig_atomic_t set_flag = 1; //alarm handler flag
 char act_sessions[MAX_SESSIONS+9]; //array for active sessions
 //global variables for help screen
-int help_mode = 0;
+int help_mode = 2;
 VSCREEN *help_screen = NULL;
 
 int main(int argc, char *argv[]) {
@@ -320,13 +320,15 @@ void do_other_processing() {
     //display time in the bottom right corner of status line
     set_session_num();
     display_time();
+    /*
     if (num_screen == 2 && right_screen != NULL && right_session != NULL && (fg_session->sid) == (right_session->sid)) {
         //resize all the vscreen including the new one
         //resize_vscreens();
         //need to syncronize the virtual screen corresponding to the right screen
-        vscreen_show_right(right_session->vscreen);
-        //vscreen_sync_right(right_session->vscreen);
+        //vscreen_show_right(right_session->vscreen);
+        vscreen_sync_right(right_session->vscreen);
     }
+    */
     wrefresh(main_screen);
     display_help();
 }
@@ -523,16 +525,6 @@ void display_help() {
         help_mode = 2;
     }
 
-    /*
-    wclear(main_screen);
-    vscreen_sync(help_screen);
-    while(1) {
-        if (wgetch(main_screen) == 27) {
-            vscreen_show(fg_session->vscreen);
-            break;
-        }
-    }
-    */
 }
 
 void active_sessions() {

@@ -82,6 +82,10 @@ int mainloop(void) {
 				    } else {
 						for(char *bp = buf; n > 0; n--) {
 						    vscreen_putc(session->vscreen, *bp++);
+						    if (num_screen == 2 && right_screen != NULL && right_session != NULL && (fg_session->sid) == (right_session->sid)) {
+						    	//vscreen_putc_right(session->vscreen, bp++);
+						    	vscreen_sync_right(session->vscreen);
+						    }
 						    vscreen_sync(session->vscreen);
 						    //do for the right screen
 						}
