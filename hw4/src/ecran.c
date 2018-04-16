@@ -492,10 +492,10 @@ void display_help() {
     //make a copy of terminal screen of the foreground session
     VSCREEN *help_screen;
     help_screen = vscreen_init();
-    int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
+    int msg_len = sizeof(helpMSG)/sizeof(helpMSG[0]);
     for (int i=0; i<msg_len; i++) {
         memset(help_screen->lines[i], 0, help_screen->num_cols);
-        strcat(help_screen->lines[i], help_msg[i]);
+        strcat(help_screen->lines[i], helpMSG[i]);
         help_screen->line_changed[i] = 1;
     }
     //sessions currently active

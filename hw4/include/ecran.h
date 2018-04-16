@@ -44,14 +44,14 @@ void sigalrm_handler(int sig);
 void display_help();
 void active_sessions();
 
-char *help_msg[] = {"Terminal Multiplexer",
-                "by Yao Li",
-                "CTRL-A        COMMAND_ESCAPE",
-                "CTRL-A n      Create new virtual termin session",
-                "CTRL-A num    Switch between terminal sessions; num is the session number",
-                "CTRL-A k num  Kill terminal session with ID num",
-                "CTRL-A s      Split screen mode; type again to revert back",
-                "CTRL-A h      Display this help page",
-                "CTRL-A q      Exit the program",
-                "Active sessions: ",
-                "[ESC] exit this page"};
+char *helpMSG[] = {"Terminal Multiplexer",
+                    "by Yao Li",
+                    "CTRL-A        COMMAND_ESCAPE",
+                    "CTRL-A n      Create new virtual termin session",
+                    "CTRL-A num    Switch between terminal sessions; num is the session number",
+                    "CTRL-A k num  Kill terminal session with ID num",
+                    "CTRL-A s      Split screen mode; type again to revert back",
+                    "CTRL-A h      Display this help page",
+                    "CTRL-A q      Exit the program",
+                    "Active sessions: ",
+                    "[ESC] exit this page"};
