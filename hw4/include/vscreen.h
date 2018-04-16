@@ -7,6 +7,15 @@
 
 #include <ncurses.h>
 
+struct vscreen {
+    int num_lines;
+    int num_cols;
+    int cur_line;
+    int cur_col;
+    char **lines;
+    char *line_changed;
+};
+
 typedef struct vscreen VSCREEN;
 
 extern WINDOW *main_screen;
@@ -21,5 +30,6 @@ void vscreen_fini(VSCREEN *vscreen);
 
 void vscreen_resize(VSCREEN *vscreen); //resize the specified vscreen when type split
 void vscreen_show_right(VSCREEN *vscreen); //show virtual screen on a specific screen
+void vscreen_sync_right(VSCREEN *vscreen); //syncronize the right part of the screen
 
 #endif

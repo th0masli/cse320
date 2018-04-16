@@ -23,7 +23,9 @@ static void curses_fini(void);
 static void finalize(void);
 
 static char *init_cmd = " (ecran session)"; //initial command for starting the pty
-volatile sig_atomic_t set_flag = 0; //alarm handler flag
+volatile sig_atomic_t set_flag = 1; //alarm handler flag
+char act_sessions[MAX_SESSIONS+9]; //array for active sessions
+int help_mode = 0;
 
 int main(int argc, char *argv[]) {
     char *file_name;
@@ -63,8 +65,8 @@ int main(int argc, char *argv[]) {
     //fprintf(stderr, "The extra command is: %s\n", extra_cmd);
     initialize();
     //for the time display
-    signal(SIGALRM, sigalrm_handler); // install alarm signal handler
     alarm(1); // alarm schedule is 1s
+    signal(SIGALRM, sigalrm_handler); // install alarm signal handler
     mainloop(); //keep loop waiting for user; write the user input to foreground session
     // NOT REACHED
 }
@@ -105,22 +107,6 @@ static void finalize(void) {
     curses_fini();
     exit(EXIT_SUCCESS);
 }
-
-/*
-//maybe need a finalize for the EXIT_FAILURE
-void failure_fini(void) {
-    int i;
-    fg_session = NULL;
-    for (i=0; i<MAX_SESSIONS; i++) {
-        if (sessions[i] != NULL) {
-            session_fini(sessions[i]);
-            sessions[i] = NULL;
-        }
-    }
-    curses_fini();
-    exit(EXIT_FAILURE);
-}
-*/
 
 /*
  * Helper method to initialize the screen for use with curses processing.
@@ -205,10 +191,15 @@ void do_command() {
         SESSION *new_session = session_init(path, argv);
         //check if a new session is created
         if (new_session != NULL) {
+            //if in split screen mode resize the vscreen
+            if (num_screen == 2 && right_screen != NULL && right_session != NULL) {
+                //resize_vscreens();
+                vscreen_resize(new_session->vscreen);
+            }
             //display the new virtual screen
             vscreen_show(new_session->vscreen);
-            fprintf(stderr, "%s\n", "new session created");
-            fprintf(stderr, "The session process id is: %d\n", new_session->pid);
+            //fprintf(stderr, "%s\n", "new session created");
+            //fprintf(stderr, "The session process id is: %d\n", new_session->pid);
         }else {
             //no more session can be created
             set_status("Session table is full");
@@ -225,7 +216,7 @@ void do_command() {
             session_setfg(session_specified);
             //vscreen_show(session_specified->vscreen);
             vscreen_show(fg_session->vscreen);
-            fprintf(stderr, "%s\n", "session switched");
+            //fprintf(stderr, "%s\n", "session switched");
             //VSCREEN *fg_vscreen = fg_session->vscreen;
             //set_status("Try to swith session to");
         }else {
@@ -252,7 +243,7 @@ void do_command() {
                 SESSION *bg_session;
                 pid_t pid_specified = session_specified->pid;
                 if (fg_sid == specifeid_sid) {
-                    fprintf(stderr, "Try to kill a foreground session with process id: %d\n", pid_specified);
+                    //fprintf(stderr, "Try to kill a foreground session with process id: %d\n", pid_specified);
                     //if no background session then quite the program
                     if ((bg_sid = find_bg_session(fg_sid)) != -1) {
                         bg_session = sessions[bg_sid];
@@ -262,6 +253,23 @@ void do_command() {
                         //all sessions have been killed except the foreground session
                         //finish all the mess in the finalize
                         finalize();
+                    }
+                }
+                //when killing the right session
+                if (num_screen == 2 && right_screen != NULL && right_session != NULL) {
+                    int right_sid = right_session->sid;
+                    if (right_sid == specifeid_sid) {
+                        //fprintf(stderr, "Try to kill a right session with process id: %d\n", pid_specified);
+                        //if no background session then quite the program
+                        if ((bg_sid = find_bg_session(right_sid)) != -1) {
+                            bg_session = sessions[bg_sid];
+                            session_set_right(bg_session);
+                            //vscreen_show(bg_session->vscreen);
+                        }else {
+                            //all sessions have been killed except the foreground session
+                            //finish all the mess in the finalize
+                            finalize();
+                        }
                     }
                 }
                 session_kill(session_specified);
@@ -277,6 +285,14 @@ void do_command() {
     //split screen
     else if(c == 's') {
         split_screen();
+    }
+    //help screen
+    else if(c == 'h') {
+        //help screen mode
+        help_mode = 1;
+        wclear(main_screen);
+        //display_help();
+        set_status("Help Screen");
     }
     else {
         set_status("No such command");
@@ -297,11 +313,15 @@ void do_other_processing() {
     //display time in the bottom right corner of status line
     set_session_num();
     display_time();
-    if (num_screen == 2 && right_screen != NULL && right_session != NULL) {
+    if (num_screen == 2 && right_screen != NULL && right_session != NULL && (fg_session->sid) == (right_session->sid)) {
+        //resize all the vscreen including the new one
+        //resize_vscreens();
         //need to syncronize the virtual screen corresponding to the right screen
         vscreen_show_right(right_session->vscreen);
+        //vscreen_sync_right(right_session->vscreen);
     }
     wrefresh(main_screen);
+    display_help();
 }
 
 
@@ -456,14 +476,64 @@ void set_session_num() {
             session_num++;
     }
     sprintf(session_num_str, "%d", session_num);
-    //set_status(session_num_str);
-    /*
-    int num_len = strlen(session_num_str);
-    for (int i=0; i<num_len; i++)
-        mvwaddch(status_line, 0, COLS-2+i, session_num_str[i]);
-    */
-    mvwaddstr(status_line, 0, COLS-2, session_num_str);
+    //1-9
+    if (session_num < 10) {
+        mvwaddstr(status_line, 0, COLS-2, "0");
+        mvwaddstr(status_line, 0, COLS-1, session_num_str);
+    }else {
+        mvwaddstr(status_line, 0, COLS-2, session_num_str);
+    }
     wrefresh(status_line);        // Make changes visible by refresh
 }
 
+
 //Help Screen
+void display_help() {
+    //make a copy of terminal screen of the foreground session
+    VSCREEN *help_screen;
+    help_screen = vscreen_init();
+    int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
+    for (int i=0; i<msg_len; i++) {
+        memset(help_screen->lines[i], 0, help_screen->num_cols);
+        strcat(help_screen->lines[i], help_msg[i]);
+        help_screen->line_changed[i] = 1;
+    }
+    //sessions currently active
+    active_sessions();
+    for (int j=0; j<(MAX_SESSIONS+9); j++) {
+        //fprintf(stderr, "%d\n", act_sessions[j]);
+        help_screen->lines[msg_len-2][j+17] = act_sessions[j];
+    }
+
+    if (help_mode == 1) {
+        vscreen_sync(help_screen);
+    }
+    else if (help_mode == 0) {
+        vscreen_show(fg_session->vscreen);
+        help_mode = 2;
+    }
+
+    /*
+    wclear(main_screen);
+    vscreen_sync(help_screen);
+    while(1) {
+        if (wgetch(main_screen) == 27) {
+            vscreen_show(fg_session->vscreen);
+            break;
+        }
+    }
+    */
+}
+
+void active_sessions() {
+    for (int i=0; i<(MAX_SESSIONS+9); i++) {
+        if (i%2 == 0) {
+            if (sessions[i/2] != NULL) {
+            act_sessions[i] = ((char) (i/2)) + 48;
+            }else
+                act_sessions[i] = '_';
+        }else {
+            act_sessions[i] = '|';
+        }
+    }
+}

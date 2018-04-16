@@ -28,58 +28,67 @@ int mainloop(void) {
     struct timeval tv;
     fd_set fds;
     while(1) {
-	int c = wgetch(main_screen);
-	if(c != ERR) {
-	    // If command escape -- process command
-	    if(c == COMMAND_ESCAPE) {
-			// Temporarily disable non-blocking I/O to make it
-			// easier to collect the rest of the command.
-			nodelay(main_screen, FALSE);
-			do_command();
-			// Restore non-blocking I/O before returing.
-			nodelay(main_screen, TRUE);
-	    } else {
-			// Write char to pty of foreground session -- as if typed.
-		    //set_status("I will do session put char");
-			session_putc(fg_session, c);
-	    }
-	}
-
-	// Hook called to do any other processing (such as dealing with
-	// terminated sessions) that must be taken care of.
-	do_other_processing();
-
-	// Check each session to see if there is output to read.
-	// Maybe we only really have to do this for foreground session.
-	// But we still need to use select to be responsive to command escapes.
-	tv.tv_sec = 0;
-	tv.tv_usec = 10000;
-	FD_ZERO(&fds);
-	int nfds = setfds(&fds);
-	int s;
-	if((s = select(nfds, &fds, NULL, NULL, &tv)) > 0) {
-	    for(int i = 0; i < MAX_SESSIONS; i++) {
-		SESSION *session = sessions[i];
-		if(session != NULL && FD_ISSET(session->ptyfd, &fds)) {
-		    char buf[100];
-		    int n = session_read(session, buf, sizeof(buf));
-		    if(n == EOF) {
-			// This can occur if the session leader terminates,
-			// leaving no process on the slave side of the pty.
-			// To avoid spinning until the session has been
-			// properly cleaned up, we set an error flag so that
-			// this session will be ignored by select().
-			session->error = 1;
-		    } else {
-			for(char *bp = buf; n > 0; n--) {
-				//set_status("I will do vscreen put char");
-			    vscreen_putc(session->vscreen, *bp++);
-			    vscreen_sync(session->vscreen);
+		int c = wgetch(main_screen);
+		if(c != ERR) {
+			//exit the help screen
+			if (help_mode == 1) {
+				if (c == 27) {
+					help_mode = 0;
+					continue;
+				}
+				else if (c != COMMAND_ESCAPE)
+					continue;
 			}
+		    // If command escape -- process command
+		    if(c == COMMAND_ESCAPE) {
+				// Temporarily disable non-blocking I/O to make it
+				// easier to collect the rest of the command.
+				nodelay(main_screen, FALSE);
+				do_command();
+				// Restore non-blocking I/O before returing.
+				nodelay(main_screen, TRUE);
+		    } else {
+				// Write char to pty of foreground session -- as if typed.
+			    //set_status("I will do session put char");
+				session_putc(fg_session, c);
 		    }
 		}
-	    }
-	}
+
+		// Hook called to do any other processing (such as dealing with
+		// terminated sessions) that must be taken care of.
+		do_other_processing();
+
+		// Check each session to see if there is output to read.
+		// Maybe we only really have to do this for foreground session.
+		// But we still need to use select to be responsive to command escapes.
+		tv.tv_sec = 0;
+		tv.tv_usec = 10000;
+		FD_ZERO(&fds);
+		int nfds = setfds(&fds);
+		int s;
+		if((s = select(nfds, &fds, NULL, NULL, &tv)) > 0) {
+		    for(int i = 0; i < MAX_SESSIONS; i++) {
+				SESSION *session = sessions[i];
+				if(session != NULL && FD_ISSET(session->ptyfd, &fds)) {
+				    char buf[100];
+				    int n = session_read(session, buf, sizeof(buf));
+				    if(n == EOF) {
+					// This can occur if the session leader terminates,
+					// leaving no process on the slave side of the pty.
+					// To avoid spinning until the session has been
+					// properly cleaned up, we set an error flag so that
+					// this session will be ignored by select().
+					session->error = 1;
+				    } else {
+						for(char *bp = buf; n > 0; n--) {
+						    vscreen_putc(session->vscreen, *bp++);
+						    vscreen_sync(session->vscreen);
+						    //do for the right screen
+						}
+				    }
+				}
+		    }
+		}
     }
     // NOT REACHED
 }

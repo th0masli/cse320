@@ -1,9 +1,4 @@
 
-
 SPLIT_SCREEN
-I implemented the split screen part between the line 355 and 418 in ecran.c
-most functions are defined there
-
 ENHANCED_STATUS
-I implemented the enhanced status part between line 421 and 467.
-Successfully displayed the time and number of existing sessions.
+HELP_SCREEN

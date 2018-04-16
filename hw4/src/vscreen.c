@@ -16,7 +16,7 @@ WINDOW *main_screen;
 WINDOW *right_screen = NULL;
 //number of screens either 1 or 2
 int num_screen = 1; //by default there is only 1 screen
-
+/*
 struct vscreen {
     int num_lines;
     int num_cols;
@@ -25,7 +25,7 @@ struct vscreen {
     char **lines;
     char *line_changed;
 };
-
+*/
 static void update_line(VSCREEN *vscreen, int l);
 static void update_line_right(VSCREEN *vscreen, int l); //update line for right screen
 
@@ -154,6 +154,8 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
         memset(vscreen->lines[l], 0, vscreen->num_cols);
     } else if(ch == '\r') {
 	   vscreen->cur_col = 0;
+    } else if(ch == '\a') {
+        flash();
     }
     vscreen->line_changed[l] = 1;
 }
@@ -177,7 +179,7 @@ void vscreen_fini(VSCREEN *vscreen) {
 void vscreen_resize(VSCREEN *vscreen) {
     //resize the vscreens to fit the 2 screen mode
     if (num_screen == 2) {
-        vscreen->num_cols = COLS/num_screen;
+        vscreen->num_cols = (COLS/num_screen) - 1;
     }
     //resize the vscreens to fit the original main screen
     else if (num_screen == 1) {
@@ -194,6 +196,21 @@ void vscreen_show_right(VSCREEN *vscreen) {
         vscreen->line_changed[l] = 0;
     }
     //fprintf(stderr, "The current cols for a virtual screens is: %d\n", vscreen->num_cols);
+    if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
+        exit(EXIT_FAILURE);
+    //if (refresh() == ERR)
+    if (wrefresh(right_screen) == ERR)
+        exit(EXIT_FAILURE);
+}
+
+//syncronize the right part of the screen
+void vscreen_sync_right(VSCREEN *vscreen) {
+    for(int l = 0; l < vscreen->num_lines; l++) {
+        if(vscreen->line_changed[l]) {
+            update_line_right(vscreen, l);
+            vscreen->line_changed[l] = 0;
+        }
+    }
     if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
         exit(EXIT_FAILURE);
     //if (refresh() == ERR)

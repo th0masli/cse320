@@ -70,8 +70,8 @@ SESSION *session_init(char *path, char *argv[]) {
 
         		// Set TERM environment variable to match vscreen terminal
         		// emulation capabilities (which currently aren't that great).
-        		//putenv("TERM=dumb");
-                putenv("TERM=ansi");
+        		putenv("TERM=dumb");
+                //putenv("TERM=ansi");
 
                 //do the initial command in the child process
                 if (strcmp(argv[0], " (new session)") && strcmp(argv[0], " (ecran session)"))
@@ -134,7 +134,7 @@ void session_kill(SESSION *session) {
     //send the kill signal
     int pid_specified = session->pid;
     int session_id = session->sid;
-    fprintf(stderr, "Try to kill a session with process id: %d\n", pid_specified);
+    //fprintf(stderr, "Try to kill a session with process id: %d\n", pid_specified);
     kill(pid_specified, SIGKILL);
     //after kill should set session in list to null and free it
     session_fini(session);
