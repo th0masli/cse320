@@ -214,6 +214,7 @@ void do_command() {
         }
     }
     //switch between sessions
+    //do not show the screen when in help screen mode
     else if(c >= '0' && c <= '9') {
         //set_status("Try to swith session to");
         session_id = c - '0';
@@ -222,10 +223,9 @@ void do_command() {
             //set_status("Session not NULL");
             session_setfg(session_specified);
             //vscreen_show(session_specified->vscreen);
-            vscreen_show(fg_session->vscreen);
-            //fprintf(stderr, "%s\n", "session switched");
-            //VSCREEN *fg_vscreen = fg_session->vscreen;
-            //set_status("Try to swith session to");
+            if (help_mode != 1)
+                vscreen_show(fg_session->vscreen);
+            //fprintf(stderr, "session switched to: %d\n", fg_session->sid);
         }else {
             set_status("No such session");
             flash();
@@ -305,9 +305,15 @@ void do_command() {
     /*
     //clear screen
     else if(c == 'c') {
-        flash();
-        //vscreen_show(fg_session->vscreen);
-        //set_status("screen cleared");
+        //flash();
+        VSCREEN *old_vscreen, *new_vscreen;
+        old_vscreen = fg_session->vscreen;
+        new_vscreen = vscreen_init();
+        fg_session->vscreen = new_vscreen;
+        session_putc(fg_session, '\n');
+        vscreen_show(fg_session->vscreen);
+        vscreen_fini(old_vscreen);
+        set_status("screen cleared");
     }
     */
     else {
@@ -329,15 +335,7 @@ void do_other_processing() {
     //display time in the bottom right corner of status line
     set_session_num();
     display_time();
-    /*
-    if (num_screen == 2 && right_screen != NULL && right_session != NULL && (fg_session->sid) == (right_session->sid)) {
-        //resize all the vscreen including the new one
-        //resize_vscreens();
-        //need to syncronize the virtual screen corresponding to the right screen
-        //vscreen_show_right(right_session->vscreen);
-        vscreen_sync_right(right_session->vscreen);
-    }
-    */
+    //put the curser to the right place
     wrefresh(main_screen);
     display_help();
 }
@@ -509,14 +507,14 @@ void set_session_num() {
 void display_help() {
     if (help_mode == 1) {
         int msg_len = sizeof(help_msg)/sizeof(help_msg[0]);
-        //if (help_screen == NULL) {
-            help_screen = vscreen_init();
-            for (int i=0; i<msg_len; i++) {
-                memset(help_screen->lines[i], 0, help_screen->num_cols);
-                strcat(help_screen->lines[i], help_msg[i]);
-                help_screen->line_changed[i] = 1;
-            }
-        //}
+        if (help_screen != NULL)
+            vscreen_fini(help_screen);
+        help_screen = vscreen_init();
+        for (int i=0; i<msg_len; i++) {
+            memset(help_screen->lines[i], 0, help_screen->num_cols);
+            strcat(help_screen->lines[i], help_msg[i]);
+            help_screen->line_changed[i] = 1;
+        }
         //sessions currently active
         active_sessions();
         for (int j=0; j<(MAX_SESSIONS+9); j++) {

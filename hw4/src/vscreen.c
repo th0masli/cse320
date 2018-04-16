@@ -185,7 +185,10 @@ void vscreen_fini(VSCREEN *vscreen) {
 void vscreen_resize(VSCREEN *vscreen) {
     //resize the vscreens to fit the 2 screen mode
     if (num_screen == 2) {
-        vscreen->num_cols = (COLS/num_screen) - 1;
+        vscreen->num_cols = (COLS/num_screen);// - 1;
+        //the curse cannot go out of the number of columns
+        if ((vscreen->cur_col) >= (vscreen->num_cols))
+            vscreen->cur_col = (vscreen->num_cols) - 1;
     }
     //resize the vscreens to fit the original main screen
     else if (num_screen == 1) {
