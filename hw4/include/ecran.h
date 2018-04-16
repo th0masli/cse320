@@ -44,8 +44,8 @@ void sigalrm_handler(int sig);
 void display_help();
 void active_sessions();
 
-/*
-char *help_msg[] = {"Terminal Multiplexer",
+
+static char *help_msg[] = {"Terminal Multiplexer",
                     "by Yao Li",
                     "CTRL-A        COMMAND_ESCAPE",
                     "CTRL-A n      Create new virtual termin session",
@@ -56,4 +56,3 @@ char *help_msg[] = {"Terminal Multiplexer",
                     "CTRL-A q      Exit the program",
                     "Active sessions: ",
                     "[ESC] exit this page"};
-*/
