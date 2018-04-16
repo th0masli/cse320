@@ -271,7 +271,7 @@ void do_command() {
                         if ((bg_sid = find_bg_session(right_sid)) != -1) {
                             bg_session = sessions[bg_sid];
                             session_set_right(bg_session);
-                            //vscreen_show(bg_session->vscreen);
+                            vscreen_show_right(bg_session->vscreen);
                         }else {
                             //all sessions have been killed except the foreground session
                             //finish all the mess in the finalize
