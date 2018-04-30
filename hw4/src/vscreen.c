@@ -38,8 +38,6 @@ VSCREEN *vscreen_init() {
     //reserve 1 line for the status line
     vscreen->num_lines = LINES-1;
     vscreen->num_cols = COLS;
-    //halve the COLS when first type split
-    //vscreen->num_cols = COLS/num_screen;
     vscreen->cur_line = 0;
     vscreen->cur_col = 0;
     vscreen->lines = calloc(sizeof(char *), vscreen->num_lines);
@@ -144,6 +142,10 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
         if ((vscreen->cur_line + 1) / vscreen->num_lines > 0) {
             if (scroll(main_screen) == ERR)
                 exit(EXIT_FAILURE);
+            if (num_screen == 2) {
+                if (scroll(right_screen) == ERR)
+                    exit(EXIT_FAILURE);
+            }
             //keep the line at the bottom
             l = vscreen->cur_line = l;
         } else {
@@ -156,6 +158,11 @@ void vscreen_putc(VSCREEN *vscreen, char ch) {
 	   vscreen->cur_col = 0;
     } else if(ch == '\a') {
         flash();
+    }
+    //back space
+    else if(ch == '\b') {
+        vscreen->lines[l][c-1] = '\0';
+        vscreen->cur_col--;
     }
     vscreen->line_changed[l] = 1;
 }
@@ -174,12 +181,14 @@ void vscreen_fini(VSCREEN *vscreen) {
 
 }
 
-
 //resize the specified vscreen when type split
 void vscreen_resize(VSCREEN *vscreen) {
     //resize the vscreens to fit the 2 screen mode
     if (num_screen == 2) {
-        vscreen->num_cols = (COLS/num_screen) - 1;
+        vscreen->num_cols = (COLS/num_screen);// - 1;
+        //the curse cannot go out of the number of columns
+        if ((vscreen->cur_col) >= (vscreen->num_cols))
+            vscreen->cur_col = (vscreen->num_cols) - 1;
     }
     //resize the vscreens to fit the original main screen
     else if (num_screen == 1) {
@@ -208,7 +217,7 @@ void vscreen_sync_right(VSCREEN *vscreen) {
     for(int l = 0; l < vscreen->num_lines; l++) {
         if(vscreen->line_changed[l]) {
             update_line_right(vscreen, l);
-            vscreen->line_changed[l] = 0;
+            //vscreen->line_changed[l] = 0;
         }
     }
     if (wmove(right_screen, vscreen->cur_line, vscreen->cur_col) == ERR)
