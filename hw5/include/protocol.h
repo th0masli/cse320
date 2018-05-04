@@ -62,7 +62,7 @@ typedef enum {
  * The following structure defines the header format:
  */
 typedef struct {
-    uint8_t type;		   // Type of the packet
+    uint8_t type;		           // Type of the packet
     uint32_t payload_length;       // Length of payload
     uint32_t msgid;                // Unique ID of message to which packet pertains
     uint32_t timestamp_sec;        // Seconds field of time packet was sent
