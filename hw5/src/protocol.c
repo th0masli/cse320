@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "debug.h"
 #include "protocol.h"
 #include "csapp.h"
 
@@ -75,6 +76,7 @@ int proto_recv_packet(int fd, bvd_packet_header *hdr, void **payload) {
             //exit(-1);
             return -1;
         }
+        debug("The payload reveived is: %s", (char*)*payload);
     }
 
     return 0;

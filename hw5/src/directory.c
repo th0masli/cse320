@@ -158,10 +158,10 @@ MAILBOX *dir_register(char *handle, int sockfd) {
     new_handle->handle_fd = sockfd;
     MAILBOX *new_mailbox = mb_init(handle);
     new_handle->mailbox = new_mailbox;
-    //call mb_ref() to increase the reference count on a mailbox before returning a pointer to it
-    mb_ref(new_mailbox);
     //insert the new handle to the list
     insert_handle(new_handle);
+    //call mb_ref() to increase the reference count on a mailbox before returning a pointer to it
+    mb_ref(new_mailbox);
 
     V(&(dir->mutex));
 
@@ -177,8 +177,11 @@ HANDLE *handle_lookup(char *handle_name) {
     HANDLE *cur_handle = header->next;
     while (cur_handle != header) {
         //there is already a same handle there
-        if (!strcmp((cur_handle->usr_name), handle_name))
+        if (!strcmp((cur_handle->usr_name), handle_name)) {
+            debug("There is already a handle called: %s", handle_name);
             return cur_handle;
+        }
+        cur_handle = cur_handle->next;
     }
 
     return NULL;
@@ -270,25 +273,27 @@ char **dir_all_handles(void) {
     HANDLE *cur_handle = header->next;
     int h_len = handles_len(header);
     int name_len;
+    debug("The number of handles is: %d", h_len);
     //a NULL-terminated array of strings
     char **handles_array = Malloc(sizeof(char*)*(h_len+1));
-    char *handles_array_cur = *handles_array;
+    char **handles_array_cur = handles_array;
     while (cur_handle != header) {
         name_len = strlen(cur_handle->usr_name)+1;
-        handles_array_cur = Malloc(name_len);
-        memcpy(handles_array_cur, cur_handle->usr_name, name_len);
-        cur_handle++;
+        *handles_array_cur = Malloc(name_len);
+        memcpy(*handles_array_cur, cur_handle->usr_name, name_len);
+        //*handles_array_cur++ = '\0';
+        cur_handle = cur_handle->next;
         handles_array_cur++;
     }
 
-    handles_array_cur = NULL;
+    *handles_array_cur = NULL;
 
-    /*
+
     for (int i=0; i<h_len; i++) {
-        printf("|");
-        printf("%s", handles_array[i]);
+        //printf("|");
+        debug("%s", handles_array[i]);
     }
-    */
+
 
     V(&(dir->mutex));
 
@@ -298,10 +303,11 @@ char **dir_all_handles(void) {
 
 //get the length of the handle list
 int handles_len(HANDLE *header) {
+
     int len = 0;
     HANDLE *handle = header->next;
     while (handle != header) {
-        handle++;
+        handle = handle->next;
         len++;
     }
 

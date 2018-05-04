@@ -19,10 +19,12 @@ handler_t *install_sig_handler(int signum, handler_t *handler);
 //sighup handler just kill the whole process
 void sighup_handler(int sig);
 
+/*
 typedef struct thread_counter {
     unsigned int num;
     sem_t mutex;
 } THREAD_COUNTER;
+*/
 
 
 THREAD_COUNTER *thread_counter;
@@ -94,7 +96,7 @@ void *client_handler(void *arg) {
 
     Pthread_detach(pthread_self());
 
-    debug("The thread number is: %d\n", thread_counter->num);
+    //debug("The thread number is: %d\n", thread_counter->num);
 
     bvd_client_service(arg);
 
@@ -118,9 +120,6 @@ handler_t *install_sig_handler(int signum, handler_t *handler)
 
 //sighup handler just kill the whole process
 void sighup_handler(int sig) {
-    //kill the process?
-    //pid_t pid = getpid();
-    //kill(pid, sig);
     //terminate the program
     terminate(sig);
 }

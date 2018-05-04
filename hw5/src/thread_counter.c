@@ -51,7 +51,7 @@ void tcnt_decr(THREAD_COUNTER *tc) {
     }
     //alert every body waiting
     /*
-    while (!thread_num)
+    while (thread_num == 0)
         ;
     V(&(tc->mutex));
     */
@@ -70,4 +70,3 @@ void tcnt_wait_for_zero(THREAD_COUNTER *tc) {
     }
 
 }
-
