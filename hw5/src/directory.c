@@ -158,10 +158,10 @@ MAILBOX *dir_register(char *handle, int sockfd) {
     new_handle->handle_fd = sockfd;
     MAILBOX *new_mailbox = mb_init(handle);
     new_handle->mailbox = new_mailbox;
-    //insert the new handle to the list
-    insert_handle(new_handle);
     //call mb_ref() to increase the reference count on a mailbox before returning a pointer to it
     mb_ref(new_mailbox);
+    //insert the new handle to the list
+    insert_handle(new_handle);
 
     V(&(dir->mutex));
 

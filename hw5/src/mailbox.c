@@ -11,7 +11,7 @@
 
 //define a linked list for mailbox entry list
 typedef struct entry_list {
-    MAILBOX_ENTRY *entry;
+    MAILBOX_ENTRY *mb_entry;
     struct entry_list *next;
     struct entry_list *prev;
 } ENTRY_LIST;
@@ -28,9 +28,11 @@ typedef struct mailbox {
 } MAILBOX;
 
 //insert the entry to the end of mailbox queue
-void insert_entry(MAILBOX *mb, MAILBOX *mailbox_entry);
+int insert_entry(MAILBOX *mb, ENTRY_LIST *mailbox_entry);
 //remove entry from the beginning of the mailbox
 MAILBOX_ENTRY *remove_entry(MAILBOX *mb);
+//finalize the mailbox everything
+void mb_fini(MAILBOX *mb);
 
 /*
  * A mailbox provides the ability for its client to set a hook to be
@@ -51,10 +53,6 @@ MAILBOX_ENTRY *remove_entry(MAILBOX *mb);
  * The following is the type of discard hook function.
  */
 //typedef void (MAILBOX_DISCARD_HOOK)(MAILBOX_ENTRY *);
-void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *hook) {
-    //to do
-    //set a hook to deal with the discarded mailbox
-}
 
 /*
  * Create a new mailbox for a given handle.
@@ -64,7 +62,7 @@ MAILBOX *mb_init(char *handle) {
 
     MAILBOX *new_mb = Malloc(sizeof(MAILBOX));
     //init the handle name corresponding to the mailbox
-    int h_len = strlen(handle) + 1;
+    int h_len = strlen(handle);// + 1;
     char *handle_name = Malloc(h_len);
     memcpy(handle_name, handle, h_len);
     new_mb->handle_name = handle_name;
@@ -72,16 +70,10 @@ MAILBOX *mb_init(char *handle) {
     new_mb->ref_count = 1;
     //install the mutex for the mailbox
     Sem_init(&(new_mb->mutex), 0, 1);
-    Sem_init(&(new_mb->msg), 0, 1);
+    Sem_init(&(new_mb->msg), 0, 0);
     //init the entry header and rear
-    ENTRY_LIST *entry_hdr = Malloc(sizeof(ENTRY_LIST));
-    ENTRY_LIST *entry_rear = Malloc(sizeof(ENTRY_LIST));
-    entry_hdr->entry = NULL;
-    entry_rear->entry = NULL;
-    entry_hdr->next = entry_rear;
-    entry_hdr->prev = NULL;
-    entry_rear->next = NULL;
-    entry_rear->prev = entry_hdr;
+    ENTRY_LIST *entry_hdr = NULL;
+    ENTRY_LIST *entry_rear = NULL;
 
     new_mb->entry_header = entry_hdr;
     new_mb->entry_rear = entry_rear;
@@ -92,9 +84,15 @@ MAILBOX *mb_init(char *handle) {
 /*
  * Set the discard hook for a mailbox.
  */
-void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *) {
-
-
+void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *hook) {
+    //to do
+    //set a hook to deal with the discarded mailbox
+    //debug("Using hook");
+    MAILBOX_ENTRY *hook_entry = (MAILBOX_ENTRY*)(mb->entry_header);
+    if ((mb->defunct) == 1 && (hook_entry->content.message.from) != NULL) {
+        hook(hook_entry);
+        mb_unref(hook_entry->content.message.from);
+    }
 }
 
 /*
@@ -125,7 +123,7 @@ void mb_unref(MAILBOX *mb) {
 
     if (mb != NULL) {
         if ((mb->ref_count) > 0) {
-          p(&(mb->mutex));
+          P(&(mb->mutex));
 
           mb->ref_count--;
 
@@ -146,21 +144,18 @@ void mb_fini(MAILBOX *mb) {
     discard everything
     */
     free(mb->handle_name);
-    ENTRY_LIST *cur_entry = (mb->entry_header)->next;
-    while (cur_entry != (mb->entry_rear)) {
+    ENTRY_LIST *cur_entry = mb->entry_header;
+    while (cur_entry != NULL) {
         ENTRY_LIST *tmp_entry = cur_entry;
         cur_entry = cur_entry->next;
-        free(tmp_entry->body);
+        free((tmp_entry->mb_entry)->body);
+        free(tmp_entry->mb_entry);
         free(tmp_entry);
     }
     free(mb);
 
 }
 
-//free the entry
-void entry_fini(ENTRY_LIST *entry) {
-    free(entry->body);
-}
 
 /*
  * Shut down this mailbox.
@@ -185,12 +180,13 @@ void mb_shutdown(MAILBOX *mb) {
  */
 char *mb_get_handle(MAILBOX *mb) {
     //mb may be defunct; maybe NULL
-    char *handle_name = NULL;
     if (mb != NULL) {
-        handle_name = mb->handle_name;
+
+        return mb->handle_name;
+
     }
 
-    return handle_name;
+    return NULL;
 }
 
 /*
@@ -212,40 +208,56 @@ char *mb_get_handle(MAILBOX *mb) {
  */
 //need to do in a thread safe way
 void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int length) {
-    //allocate the message body on the heap
-    MAILBOX_ENTRY *new_entry = Malloc(sizeof(MAILBOX_ENTRY));
-    new_entry->type = MESSAGE_ENTRY_TYPE;
-    //buffer for body
-    void *msg_body = Malloc(length);
-    memcpy(msg_body, body, length);
-    new_entry->body = msg_body;
-    new_entry->length = length;
-    /*
-    MESSAGE *new_msg = Malloc(sizeof(MESSAGE));
-    MAILBOX *sender = Malloc(sizeof(MAILBOX));
-    memcpy(sender, from, sizeof(MAILBOX));
-    new_msg->from = sender;
-    new_msg->msgid = msgid
-    */
-    MESSAGE new_msg;
-    new_msg.from = from;
-    new_msg.msgid = msgid;
-    //add the new message to the new entry
-    new_entry->content = new_msg;
 
-    P(&(mb->mutex))
-    //insert the newly created new_entry to the target mailbox's entry list
-    insert_entry(mb, new_entry);
-    V(&(mb->mutex))
+    if (mb != NULL && (mb->defunct) != 1) {
+        //allocate the message body on the heap
+        MAILBOX_ENTRY *new_mb_entry = Malloc(sizeof(MAILBOX_ENTRY));
+        new_mb_entry->type = MESSAGE_ENTRY_TYPE;
+        void *msg_body = Malloc(length);
+        memcpy(msg_body, body, length);
+        new_mb_entry->body = msg_body;
+        new_mb_entry->length = length;
+        (new_mb_entry->content).message.from = from;
+        (new_mb_entry->content).message.msgid = msgid;
+        //cast it to the ENTRY_LIST type
+        ENTRY_LIST *new_entry = Malloc(sizeof(ENTRY_LIST));
+        new_entry->mb_entry = new_mb_entry;
+
+        P(&(mb->mutex));
+        //insert the newly created new_entry to the target mailbox's entry list
+        int insert_res = insert_entry(mb, new_entry);
+        V(&(mb->mutex));
+        //anounce available msg
+        if (insert_res == 0) {
+            debug("Insert successfully");
+            V(&(mb->msg));
+        }
+    }
+
 }
 
 //insert the entry to the end of mailbox queue
-void insert_entry(MAILBOX *mb, MAILBOX *mailbox_entry) {
-    ENTRY_LIST *rear = mb->entry_rear;
-    (rear->prev)->next = mailbox_entry;
-    mailbox_entry->prev = rear->prev;
-    mailbox_entry->next = rear;
-    rear->prev = mailbox_entry;
+int insert_entry(MAILBOX *mb, ENTRY_LIST *new_entry) {
+    //check if the head is empty
+    if (mb->entry_header == NULL) {
+
+        mb->entry_header = new_entry;
+        mb->entry_rear = new_entry;
+
+    }else {
+        (mb->entry_rear)->next = new_entry;
+        new_entry->prev = mb->entry_rear;
+        mb->entry_rear = new_entry;
+        new_entry->next = NULL;
+    }
+    //check if header or rear is still null
+    if (mb->entry_header == NULL || mb->entry_rear == NULL) {
+        debug("Insert failed");
+        return -1;
+    }
+
+    return 0;
+
 }
 
 /*
@@ -262,29 +274,33 @@ void insert_entry(MAILBOX *mb, MAILBOX *mailbox_entry) {
  */
 //need to do in thread safe way
 void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid, void *body, int length) {
-    //The notice body must have been allocated on the heap
-    MAILBOX_ENTRY *new_entry = Malloc(sizeof(MAILBOX_ENTRY));
-    new_entry->type = NOTICE_ENTRY_TYPE;
-    //buffer for body
-    void *notice_body = Malloc(length);
-    memcpy(notice_body, body, length);
-    new_entry->body = notice_body;
-    new_entry->length = length;
-    /*for the notice itself
-    NOTICE *new_notice = Malloc(sizeof(NOTICE));
-    new_notice->type = ntype;
-    new_notice->msgid = msgid;
-    */
-    NOTICE new_notice;
-    new_notice.type = ntype;
-    new_notice.msgid = msgid
-    //add the new notice to the new entry
-    new_entry->content = new_notice;
 
-    P(&(mb->mutex))
-    //use the same insert method to insert the notice to the end of mailbox queue
-    insert_entry(mb, new_entry);
-    V(&(mb->mutex))
+    if (mb != NULL && (mb->defunct) != 1) {
+        //The notice body must have been allocated on the heap
+        MAILBOX_ENTRY *new_mb_entry = Malloc(sizeof(MAILBOX_ENTRY));
+        new_mb_entry->type = NOTICE_ENTRY_TYPE;
+        void *notice_body = Malloc(length);
+        memcpy(notice_body, body, length);
+        new_mb_entry->body = notice_body;
+        new_mb_entry->length = length;
+        //type notice
+        new_mb_entry->content.notice.type = ntype;
+        new_mb_entry->content.notice.msgid = msgid;
+        //cast to entry list type
+        ENTRY_LIST *new_entry = Malloc(sizeof(ENTRY_LIST));
+        new_entry->mb_entry = new_mb_entry;
+
+        P(&(mb->mutex));
+        //use the same insert method to insert the notice to the end of mailbox queue
+        int insert_res = insert_entry(mb, new_entry);
+        V(&(mb->mutex));
+        //anounce available msg
+        if (insert_res == 0) {
+            debug("Insert successfully");
+            V(&(mb->msg));
+        }
+    }
+
 }
 
 /*
@@ -300,15 +316,26 @@ void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid, void *body, int le
  */
 //need to do in item safe way
 MAILBOX_ENTRY *mb_next_entry(MAILBOX *mb) {
-
-    MAILBOX_ENTRY *target_entry = NULL;
+    //return NULL if the mailbox is defunct
+    if ((mb->defunct) == 1) {
+        debug("The defunct flag is: %d", mb->defunct);
+        return NULL;
+    }
+    debug("Getting the entries");
+    MAILBOX_ENTRY *target_entry;
     P(&(mb->msg));   //wait for available entry
     P(&(mb->mutex)); //lock the queue
+    debug("Trying to remove");
     target_entry = remove_entry(mb); //remove the first entry
     V(&(mb->mutex)); //unlock the queue
+
     //only if there is an entry can be removed then anouce the availability
-    if ((mb->entry_header)->next != mb->entry_rear)
-      V(&(mb->msg));
+    if (target_entry != NULL) {
+      debug("removed successfully");
+      debug("The entry length is: %d", target_entry->length);
+    } else {
+        debug("No entry at this time");
+    }
 
     return target_entry;
 }
@@ -318,14 +345,15 @@ MAILBOX_ENTRY *mb_next_entry(MAILBOX *mb) {
 //remove entry from the beginning of the mailbox
 MAILBOX_ENTRY *remove_entry(MAILBOX *mb) {
     //if the tail is the next entry of head then do nothing
-    MAILBOX_ENTRY *target_entry;
-    target_entry = (mb->entry_header)->next;
-    if ((target_entry == mb->entry_rear) || target_entry == NULL)
+    ENTRY_LIST *removed_hdr = mb->entry_header;
+    if (removed_hdr == NULL)
         return NULL;
-    (mb->entry_header)->next = target_entry->next;
-    (target_entry->next)->prev = mb->entry_header;
-    target_entry->next = NULL;
-    target_entry->prev = NULL;
+    else {
+        mb->entry_header = removed_hdr->next;
+        removed_hdr->next = NULL;
+        //(mb->entry_header)->prev = NULL;
 
-    return target_entry;
+        return removed_hdr->mb_entry;
+    }
+
 }
