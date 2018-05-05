@@ -47,6 +47,8 @@ void handle_fini(HANDLE *handle);
 void remove_handle(HANDLE *handle);
 //get the length of the handle list
 int handles_len(HANDLE *header);
+//look up if the socketfd has registered
+int sockfd_lookup(int sockfd);
 
 
 /*
@@ -141,8 +143,11 @@ MAILBOX *dir_register(char *handle, int sockfd) {
 
     P(&(dir->mutex));
     //Returns NULL if handle was already registered or if the directory is defunct
+    //also need to check the sockfd to see if this is a naughty monkey
     HANDLE *handle_lookup_res = handle_lookup(handle);
-    if ((handle_lookup_res != NULL) || dir->defunct) {
+    int sockfd_lookup_res = sockfd_lookup(sockfd);
+    if ((handle_lookup_res != NULL) || sockfd_lookup_res || dir->defunct) {
+        debug("register failed");
 
         V(&(dir->mutex));
 
@@ -187,6 +192,23 @@ HANDLE *handle_lookup(char *handle_name) {
     return NULL;
 }
 
+//look up if the socketfd has registered
+int sockfd_lookup(int sockfd) {
+    HANDLE *header = dir->handle_header;
+    HANDLE *cur_handle = header->next;
+    while (cur_handle != header) {
+        //there is already a same sockfd there
+        if ((cur_handle->handle_fd) == sockfd) {
+            debug("There is already a client using sockfd: %d", sockfd);
+            return 1;
+        }
+        cur_handle = cur_handle->next;
+    }
+    debug("The sockfd is available: %d", sockfd);
+
+    return 0;
+}
+
 
 /* insert the handle to the handle list */
 void insert_handle(HANDLE *handle) {
@@ -213,6 +235,7 @@ void dir_unregister(char *handle) {
     if (handle_lookup_res != NULL) {
         remove_handle(handle_lookup_res);
         mb_unref(handle_lookup_res->mailbox);
+        //shut down the mailbox
         handle_fini(handle_lookup_res);
 
         debug("Removed handle: %s", handle);

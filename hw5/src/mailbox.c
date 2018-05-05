@@ -62,10 +62,13 @@ MAILBOX *mb_init(char *handle) {
 
     MAILBOX *new_mb = Malloc(sizeof(MAILBOX));
     //init the handle name corresponding to the mailbox
+    /*
     int h_len = strlen(handle);// + 1;
     char *handle_name = Malloc(h_len);
     memcpy(handle_name, handle, h_len);
     new_mb->handle_name = handle_name;
+    */
+    new_mb->handle_name = strdup(handle);
     new_mb->defunct = 0;
     new_mb->ref_count = 1;
     //install the mutex for the mailbox
@@ -88,8 +91,15 @@ void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *hook) {
     //to do
     //set a hook to deal with the discarded mailbox
     //debug("Using hook");
+    // && (hook_entry->content.message.from) != NULL
+    debug("The mailbox's name is: %s", mb->handle_name);
+    debug("The mailbox's defunct flag is now: %d", mb->defunct);
     MAILBOX_ENTRY *hook_entry = (MAILBOX_ENTRY*)(mb->entry_header);
-    if ((mb->defunct) == 1 && (hook_entry->content.message.from) != NULL) {
+    if ((mb->defunct) == 1) {
+        debug("discarded the entries");
+        if ((hook_entry->content.message.from) == NULL) {
+            debug("hook is dealing with NULL sender");
+        }
         hook(hook_entry);
         mb_unref(hook_entry->content.message.from);
     }
@@ -122,6 +132,7 @@ void mb_ref(MAILBOX *mb) {
 void mb_unref(MAILBOX *mb) {
 
     if (mb != NULL) {
+        debug("The number of reference before: %d", mb->ref_count);
         if ((mb->ref_count) > 0) {
           P(&(mb->mutex));
 
@@ -129,9 +140,12 @@ void mb_unref(MAILBOX *mb) {
 
           V(&(mb->mutex));
         }
+        debug("The number of reference after: %d", mb->ref_count);
         //finalize the mailbox when the reference count is 0
-        else if ((mb->ref_count) == 0)
+        if ((mb->ref_count) == 0) {
+          debug("finalize the mailbox");
           mb_fini(mb);
+        }
     }
 }
 
@@ -169,7 +183,9 @@ void mb_shutdown(MAILBOX *mb) {
 
     if (mb != NULL) {
         if ((mb->defunct) == 0) {
+            debug("Shutting down the mailbox");
             mb->defunct = 1;
+            V(&(mb->msg));
             //block mb_next_entry() using P(sem_wait)
         }
     }
@@ -316,14 +332,18 @@ void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid, void *body, int le
  */
 //need to do in item safe way
 MAILBOX_ENTRY *mb_next_entry(MAILBOX *mb) {
+
+    //debug("The defunct flag is: %d", mb->defunct);
+    P(&(mb->msg));   //wait for available entry
     //return NULL if the mailbox is defunct
     if ((mb->defunct) == 1) {
+        V(&(mb->msg));
         debug("The defunct flag is: %d", mb->defunct);
         return NULL;
     }
     debug("Getting the entries");
     MAILBOX_ENTRY *target_entry;
-    P(&(mb->msg));   //wait for available entry
+    //P(&(mb->msg));   //wait for available entry
     P(&(mb->mutex)); //lock the queue
     debug("Trying to remove");
     target_entry = remove_entry(mb); //remove the first entry
