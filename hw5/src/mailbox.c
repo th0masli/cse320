@@ -50,7 +50,11 @@ MAILBOX_ENTRY *remove_entry(MAILBOX *mb);
  *
  * The following is the type of discard hook function.
  */
-typedef void (MAILBOX_DISCARD_HOOK)(MAILBOX_ENTRY *);
+//typedef void (MAILBOX_DISCARD_HOOK)(MAILBOX_ENTRY *);
+void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *hook) {
+    //to do
+    //set a hook to deal with the discarded mailbox
+}
 
 /*
  * Create a new mailbox for a given handle.
@@ -141,7 +145,21 @@ void mb_fini(MAILBOX *mb) {
     free the mailbox
     discard everything
     */
+    free(mb->handle_name);
+    ENTRY_LIST *cur_entry = (mb->entry_header)->next;
+    while (cur_entry != (mb->entry_rear)) {
+        ENTRY_LIST *tmp_entry = cur_entry;
+        cur_entry = cur_entry->next;
+        free(tmp_entry->body);
+        free(tmp_entry);
+    }
+    free(mb);
 
+}
+
+//free the entry
+void entry_fini(ENTRY_LIST *entry) {
+    free(entry->body);
 }
 
 /*
@@ -198,14 +216,20 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
     MAILBOX_ENTRY *new_entry = Malloc(sizeof(MAILBOX_ENTRY));
     new_entry->type = MESSAGE_ENTRY_TYPE;
     //buffer for body
-    new_entry->body = body;
+    void *msg_body = Malloc(length);
+    memcpy(msg_body, body, length);
+    new_entry->body = msg_body;
     new_entry->length = length;
-    //
+    /*
     MESSAGE *new_msg = Malloc(sizeof(MESSAGE));
     MAILBOX *sender = Malloc(sizeof(MAILBOX));
     memcpy(sender, from, sizeof(MAILBOX));
     new_msg->from = sender;
     new_msg->msgid = msgid
+    */
+    MESSAGE new_msg;
+    new_msg.from = from;
+    new_msg.msgid = msgid;
     //add the new message to the new entry
     new_entry->content = new_msg;
 
@@ -242,12 +266,18 @@ void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid, void *body, int le
     MAILBOX_ENTRY *new_entry = Malloc(sizeof(MAILBOX_ENTRY));
     new_entry->type = NOTICE_ENTRY_TYPE;
     //buffer for body
-    new_entry->body = body;
+    void *notice_body = Malloc(length);
+    memcpy(notice_body, body, length);
+    new_entry->body = notice_body;
     new_entry->length = length;
-    //for the notice itself
+    /*for the notice itself
     NOTICE *new_notice = Malloc(sizeof(NOTICE));
     new_notice->type = ntype;
     new_notice->msgid = msgid;
+    */
+    NOTICE new_notice;
+    new_notice.type = ntype;
+    new_notice.msgid = msgid
     //add the new notice to the new entry
     new_entry->content = new_notice;
 
