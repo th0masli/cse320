@@ -20,6 +20,7 @@ int proto_send_packet(int fd, bvd_packet_header *hdr, void *payload) {
 
     size_t hdr_size = sizeof(bvd_packet_header);
     uint32_t p_len = hdr->payload_length;
+    int rio_res;
 
     if (hdr->type == BVD_NO_PKT) {
         return -1;
@@ -29,16 +30,26 @@ int proto_send_packet(int fd, bvd_packet_header *hdr, void *payload) {
     //convert to net format
     convert_hdr(hdr, htonl);
     //undefined type header
-    if (rio_writen(fd, hdr, hdr_size) < 0) {
+    if ((rio_res = rio_writen(fd, hdr, hdr_size)) < 0) {
         //set errno
         //exit(-1);
         return -1;
     }
+    //EOF
+    if (rio_res == 0) {
+        debug("EOF\n");
+        return -1;
+    }
 
     if ((payload != NULL) && (p_len > 0)) {
-        if (rio_writen(fd, payload, p_len) < 0) {
+        if ((rio_res = rio_writen(fd, payload, p_len)) < 0) {
             //set errno
             //exit(-1);
+            return -1;
+        }
+        //EOF
+        if (rio_res == 0) {
+            debug("EOF\n");
             return -1;
         }
     }
@@ -51,10 +62,16 @@ int proto_recv_packet(int fd, bvd_packet_header *hdr, void **payload) {
 
     //read in first
     size_t hdr_size = sizeof(bvd_packet_header);
+    int rio_res;
     //uint32_t p_len = hdr->payload_length;
-    if (rio_readn(fd, hdr, hdr_size) < 0) {
+    if ((rio_res = rio_readn(fd, hdr, hdr_size)) < 0) {
         //set errno
         //exit(-1);
+        return -1;
+    }
+    //EOF
+    if (rio_res == 0) {
+        debug("EOF\n");
         return -1;
     }
 
@@ -71,9 +88,14 @@ int proto_recv_packet(int fd, bvd_packet_header *hdr, void **payload) {
     if (p_len > 0) {
         char *data = Malloc(p_len);
         *payload = data;
-        if (rio_readn(fd, data, p_len) < 0) {
+        if ((rio_res = rio_readn(fd, data, p_len)) < 0) {
             //set errno
             //exit(-1);
+            return -1;
+        }
+        //EOF
+        if (rio_res == 0) {
+            debug("EOF\n");
             return -1;
         }
         debug("The payload reveived is: %s", (char*)*payload);

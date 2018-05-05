@@ -206,7 +206,7 @@ void dir_unregister(char *handle) {
 
     debug("Try to unregisterd handle: %s", handle);
 
-    //P(&(dir->mutex));
+    P(&(dir->mutex));
 
     HANDLE *handle_lookup_res = handle_lookup(handle);
     //find that handle
@@ -218,7 +218,7 @@ void dir_unregister(char *handle) {
         debug("Removed handle: %s", handle);
     }
 
-    //V(&(dir->mutex));
+    V(&(dir->mutex));
 
 }
 

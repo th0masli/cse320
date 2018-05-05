@@ -47,14 +47,11 @@ void tcnt_decr(THREAD_COUNTER *tc) {
     if (thread_num > 0) {
         P(&(tc->mutex));
         tc->num--;
-        V(&(tc->mutex));
+        //V(&(tc->mutex));
     }
     //alert every body waiting
-    /*
-    while (thread_num == 0)
-        ;
-    V(&(tc->mutex));
-    */
+    if (thread_num > 0)
+        V(&(tc->mutex));
 }
 
 
@@ -62,11 +59,9 @@ void tcnt_decr(THREAD_COUNTER *tc) {
 //the thread count has reached zero, at which point the
 //function will return.
 void tcnt_wait_for_zero(THREAD_COUNTER *tc) {
-    unsigned int *thread_num;
-    thread_num = &(tc->num);
-    while (thread_num) {
-        if (thread_num == 0)
-            break;
-    }
+
+    P(&(tc->mutex));
+    if ((tc->num) == 0)
+        V(&(tc->mutex));
 
 }
