@@ -162,7 +162,8 @@ void mb_fini(MAILBOX *mb) {
     while (cur_entry != NULL) {
         ENTRY_LIST *tmp_entry = cur_entry;
         cur_entry = cur_entry->next;
-        free((tmp_entry->mb_entry)->body);
+        if ((tmp_entry->mb_entry) != NULL)
+            free((tmp_entry->mb_entry)->body);
         free(tmp_entry->mb_entry);
         free(tmp_entry);
     }
@@ -367,10 +368,12 @@ MAILBOX_ENTRY *mb_next_entry(MAILBOX *mb) {
 //remove entry from the beginning of the mailbox
 MAILBOX_ENTRY *remove_entry(MAILBOX *mb) {
     //if the tail is the next entry of head then do nothing
-    ENTRY_LIST *removed_hdr = mb->entry_header;
-    if (removed_hdr == NULL)
+    if ((mb->entry_header) == NULL) {
+        debug("This should never happen");
         return NULL;
+    }
     else {
+        ENTRY_LIST *removed_hdr = mb->entry_header;
         mb->entry_header = removed_hdr->next;
         removed_hdr->next = NULL;
         //(mb->entry_header)->prev = NULL;
