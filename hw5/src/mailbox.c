@@ -157,6 +157,8 @@ void mb_fini(MAILBOX *mb) {
     free the mailbox
     discard everything
     */
+    //shut down first
+    mb_shutdown(mb);
     free(mb->handle_name);
     ENTRY_LIST *cur_entry = mb->entry_header;
     while (cur_entry != NULL) {
@@ -265,7 +267,7 @@ int insert_entry(MAILBOX *mb, ENTRY_LIST *new_entry) {
         (mb->entry_rear)->next = new_entry;
         new_entry->prev = mb->entry_rear;
         mb->entry_rear = new_entry;
-        new_entry->next = NULL;
+        //new_entry->next = NULL;
     }
     //check if header or rear is still null
     if (mb->entry_header == NULL || mb->entry_rear == NULL) {
@@ -339,9 +341,9 @@ MAILBOX_ENTRY *mb_next_entry(MAILBOX *mb) {
     //debug("The defunct flag is: %d", mb->defunct);
     P(&(mb->msg));   //wait for available entry
     //return NULL if the mailbox is defunct
-    if ((mb->defunct) == 1) {
+    if ((mb->defunct) == 1 || mb == NULL) {
         V(&(mb->msg));
-        debug("The defunct flag is: %d", mb->defunct);
+        //debug("The defunct flag is: %d", mb->defunct);
         return NULL;
     }
     debug("Getting the entries");
