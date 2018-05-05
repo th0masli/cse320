@@ -47,7 +47,6 @@ int main(int argc, char* argv[]) {
             case 'p':
                 //port = atoi(optarg);
                 port = optarg;
-                //printf("The port number is: %s\n", optarg);
                 break;
             /*
             case '?':
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
             */
         }
     }
-    //printf("The port number is: %s\n", port);
+    debug("The port number is: %s", port);
 
     // Perform required initializations of the thread counter and directory.
     thread_counter = tcnt_init();

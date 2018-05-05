@@ -291,6 +291,8 @@ int insert_entry(MAILBOX *mb, ENTRY_LIST *new_entry) {
 //need to do in thread safe way
 void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid, void *body, int length) {
 
+    debug("The message length is: %d", length);
+
     if (mb != NULL && (mb->defunct) != 1) {
         //The notice body must have been allocated on the heap
         MAILBOX_ENTRY *new_mb_entry = Malloc(sizeof(MAILBOX_ENTRY));

@@ -311,9 +311,7 @@ char **dir_all_handles(void) {
 
     *handles_array_cur = NULL;
 
-
     for (int i=0; i<h_len; i++) {
-        //printf("|");
         debug("%s", handles_array[i]);
     }
 
